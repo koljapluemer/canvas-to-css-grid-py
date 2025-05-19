@@ -284,28 +284,29 @@ class CellGrid:
     # diagonals are NOT valid
     # nodes can span several cells as a rectangle
     # therefore, we need to consider the node's width and height
-    def get_valid_anchor_cells_for_node(self, node: GridNode) -> list[tuple[int, int]]:
+    # define also whether we are N, E, S, W in regards to the node
+    def get_valid_anchor_cells_for_node(self, node: GridNode) -> list[tuple[int, int, str]]:
         valid_cells = []
         
         # Check cells above the node
         for col in range(node.col, node.col + node.width):
             if node.row > 0 and self.cells[node.row - 1][col] == "empty":
-                valid_cells.append((node.row - 1, col))
+                valid_cells.append((node.row - 1, col, "N"))
         
         # Check cells below the node
         for col in range(node.col, node.col + node.width):
             if node.row + node.height < len(self.cells) and self.cells[node.row + node.height][col] == "empty":
-                valid_cells.append((node.row + node.height, col))
+                valid_cells.append((node.row + node.height, col, "S"))
         
         # Check cells to the left of the node
         for row in range(node.row, node.row + node.height):
             if node.col > 0 and self.cells[row][node.col - 1] == "empty":
-                valid_cells.append((row, node.col - 1))
+                valid_cells.append((row, node.col - 1, "W"))
         
         # Check cells to the right of the node
         for row in range(node.row, node.row + node.height):
             if node.col + node.width < len(self.cells[0]) and self.cells[row][node.col + node.width] == "empty":
-                valid_cells.append((row, node.col + node.width))
+                valid_cells.append((row, node.col + node.width, "E"))
         
         return valid_cells
         
@@ -645,9 +646,19 @@ class CellGrid:
 
         rows, cols = len(self.cells), len(self.cells[0])
         queue = deque()
-        queue.append((start, []))
+        # Initialize queue with just the coordinates, not the full anchor tuple
+        queue.append(((start[0], start[1]), []))
         visited = set()
-        visited.add(start)
+        visited.add((start[0], start[1]))
+
+        # track the edge cells that end up in the path
+        # in the tuple, also track from which direction we came
+        # initial direction is calculated from start point to the node itself
+        #  is inverse to the direction appended to the anchor tuple
+        # E → W, N → S, etc.
+        direction_map = {"N": "S", "S": "N", "E": "W", "W": "E"}
+        direction_of_node_from_chosen_anchor_point = direction_map[start[2]]
+        edge_cell_coordinates = [[start[0], start[1], direction_of_node_from_chosen_anchor_point]]
 
         def can_traverse(curr, nxt):
             ci, cj = curr
@@ -678,15 +689,24 @@ class CellGrid:
         # 2. BFS for Manhattan path
         found_path = None
         while queue:
-            (ci, cj), path = queue.popleft()
-            if (ci, cj) == end:
-                found_path = path + [(ci, cj)]
+            curr, path = queue.popleft()
+            if curr == (end[0], end[1]):
+                # When we find the end, add it to our coordinates with direction from previous
+                if path:  # if there's a previous cell
+                    prev = path[-1]
+                    prev_dir = get_direction(prev, curr)
+                    edge_cell_coordinates.append([curr[0], curr[1], prev_dir])
+                found_path = path + [curr]
                 break
+            ci, cj = curr
             for di, dj in [(-1,0),(1,0),(0,-1),(0,1)]:
                 ni, nj = ci+di, cj+dj
                 if 0 <= ni < rows and 0 <= nj < cols and (ni, nj) not in visited:
-                    if can_traverse((ci, cj), (ni, nj)):
-                        queue.append(((ni, nj), path + [(ci, cj)]))
+                    if can_traverse(curr, (ni, nj)):
+                        # Add this cell to our coordinates with direction from current
+                        dir_to_next = get_direction(curr, (ni, nj))
+                        edge_cell_coordinates.append([ni, nj, dir_to_next])
+                        queue.append(((ni, nj), path + [curr]))
                         visited.add((ni, nj))
         if not found_path:
             self.logger.log_grid_operation(f"No path found for edge from {from_node.content} to {to_node.content}", self)
@@ -694,17 +714,16 @@ class CellGrid:
         self.logger.log_grid_operation(f"Path found for edge: {found_path}", self)
 
         # 3. Draw the path with correct connectors
-        for i in range(len(found_path)):
-            prev = found_path[i - 1] if i > 0 else None
-            curr = found_path[i]
-            next = found_path[i + 1] if i < len(found_path) - 1 else None
-            ci, cj = curr
+        for i, (ci, cj, dir_to_next) in enumerate(edge_cell_coordinates):
             current_cell = self.cells[ci][cj]
+            
+            # Get the direction we came from (previous cell's dir_to_next)
+            dir_from = edge_cell_coordinates[i-1][2] if i > 0 else None
+            
+            # Get the direction we're going to (current cell's dir_to_next)
+            dir_to = dir_to_next
 
-            dir_from = get_direction(prev, curr)
-            dir_to = get_direction(curr, next)
-
-            # Only use actual directions present (no duplicates, no axis confusion)
+            # Only use actual directions present
             dirs = set()
             if dir_from:
                 dirs.add(dir_from)
@@ -719,13 +738,15 @@ class CellGrid:
                 if d == "S": key[2] = "S"
                 if d == "W": key[3] = "W"
             edge_key = "edge-" + "".join(key)
+            
             # Special case: crossing
             if current_cell == "edge-E_W" and ("N" in dirs or "S" in dirs):
                 edge_key = "edge-NESW"
             if current_cell == "edge-N_S_" and ("E" in dirs or "W" in dirs):
                 edge_key = "edge-NESW"
+            
             if self.debug_level >= 2:
-                self.logger.log_debug(f"Drawing edge at {curr}: {edge_key}, dirs={dirs}, prev={prev}, next={next}")
+                self.logger.log_debug(f"Drawing edge at ({ci}, {cj}): {edge_key}, dirs={dirs}, from={dir_from}, to={dir_to}")
             self.cells[ci][cj] = edge_key if edge_key in CELL else "edge-NESW"
 
         self.logger.log_grid_operation(f"Finished drawing edge from {from_node.content} to {to_node.content}", self)
