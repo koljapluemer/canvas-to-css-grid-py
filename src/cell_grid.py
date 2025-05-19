@@ -194,6 +194,12 @@ class CellGrid:
         new_row = ["empty"] * len(self.cells[0])
         self.cells.insert(index, new_row)
         
+        # Update ALL node positions - any node that starts at or after the insertion point
+        # needs its row position updated
+        for node in self.nodes:
+            if node.row >= index:
+                node.row += 1
+        
         # Validate again after modification
         row_lengths = [len(row) for row in self.cells]
         if len(set(row_lengths)) != 1:
@@ -207,6 +213,12 @@ class CellGrid:
             
         for row in self.cells:
             row.insert(index, "empty")
+            
+        # Update ALL node positions - any node that starts at or after the insertion point
+        # needs its column position updated
+        for node in self.nodes:
+            if node.col >= index:
+                node.col += 1
             
         # Validate again after modification
         row_lengths = [len(row) for row in self.cells]
@@ -311,7 +323,7 @@ class CellGrid:
                 all(self.cells[row + height + 1][col + i] == "empty" for i in range(width)))
 
     def _expand_node(self, row: int, col: int) -> tuple[int, int]:
-        self.logger.log_step(f"Starting node expansion at ({row}, {col})", self.render())
+        self.logger.log_grid_operation(f"Starting node expansion at ({row}, {col})", self)
         # Start with 1x1 node
         width = 1
         height = 1
@@ -319,23 +331,21 @@ class CellGrid:
         # Expand right as much as possible
         while self._can_extend_right(row, col, width):
             width += 1
-        self.logger.log_step(f"Expanded right to width {width}", self.render())
-        
-        # Ensure all rows have enough cells for the width
-        for i in range(len(self.cells)):
-            while len(self.cells[i]) < col + width:
-                self.cells[i].append("empty")
+        self.logger.log_grid_operation(f"Expanded right to width {width}", self)
         
         # Expand down as much as possible
         while self._can_extend_down(row, col, height, width):
             height += 1
-        self.logger.log_step(f"Expanded down to height {height}", self.render())
+        self.logger.log_grid_operation(f"Expanded down to height {height}", self)
         
-        # Ensure we have enough rows
+        # Ensure we have enough rows and columns
         while len(self.cells) < row + height:
             self.cells.append(["empty"] * len(self.cells[0]))
+        for i in range(len(self.cells)):
+            while len(self.cells[i]) < col + width:
+                self.cells[i].append("empty")
             
-        self.logger.log_step(f"Final expansion size: {width}x{height}", self.render())
+        self.logger.log_grid_operation(f"Final expansion size: {width}x{height}", self)
         return width, height
 
     def add_node_at_random_empty_cell(self, node_content: str) -> None:
@@ -359,6 +369,9 @@ class CellGrid:
         
         # 3) Choose random valid cell
         row, col = random.choice(valid_cells)
+        # Double check the cell is actually empty
+        if self.cells[row][col] != "empty":
+            raise ValueError(f"Selected cell at ({row}, {col}) is not empty: {self.cells[row][col]}")
         self.logger.log_grid_operation(f"Selected cell at position ({row}, {col})", self)
         
         # 4) Insert the node and expand it
@@ -394,7 +407,7 @@ class CellGrid:
                 for node in self.nodes:
                     if node.col > col:
                         node.col -= 1
-                logging.info(f"Removed empty column {col}")
+                self.logger.log_grid_operation("Removed empty column", self)
         
         # Then remove redundant columns
         for col in range(len(self.cells[0]) - 1, 0, -1):  # start from rightmost column, go left
@@ -402,15 +415,33 @@ class CellGrid:
             current_col = [row[col] for row in self.cells]
             left_col = [row[col - 1] for row in self.cells]
             
-            # If they're identical, remove the current column
-            if current_col == left_col:
+            # Check if columns are identical by comparing node letter_ids
+            is_redundant = True
+            for row in range(len(self.cells)):
+                # If either cell is empty, they must both be empty
+                if current_col[row] == "empty" and left_col[row] == "empty":
+                    continue
+                # If either cell is a node, they must be the same node
+                if current_col[row] == "node" and left_col[row] == "node":
+                    # Find which node is in each cell
+                    current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
+                    left_node = next((n for n in self.nodes if n.col <= col-1 < n.col + n.width and n.row <= row < n.row + n.height), None)
+                    if current_node is None or left_node is None or current_node.letter_id != left_node.letter_id:
+                        is_redundant = False
+                        break
+                else:
+                    is_redundant = False
+                    break
+            
+            # If they're redundant, remove the current column
+            if is_redundant:
                 for row in self.cells:
                     row.pop(col)
                 # Update node positions
                 for node in self.nodes:
                     if node.col > col:
                         node.col -= 1
-                logging.info(f"Removed redundant column {col}")
+                self.logger.log_grid_operation("Removed redundant column", self)
 
     def purge_redundant_rows(self) -> None:
         # First remove entirely empty rows
@@ -421,18 +452,36 @@ class CellGrid:
                 for node in self.nodes:
                     if node.row > row:
                         node.row -= 1
-                logging.info(f"Removed empty row {row}")
+                self.logger.log_grid_operation("Removed empty row", self)
         
         # Then remove redundant rows
         for row in range(len(self.cells) - 1, 0, -1):  # start from bottom row, go up
-            # If current row is identical to the one above it, remove it
-            if self.cells[row] == self.cells[row - 1]:
+            # Check if rows are identical by comparing node letter_ids
+            is_redundant = True
+            for col in range(len(self.cells[0])):
+                # If either cell is empty, they must both be empty
+                if self.cells[row][col] == "empty" and self.cells[row-1][col] == "empty":
+                    continue
+                # If either cell is a node, they must be the same node
+                if self.cells[row][col] == "node" and self.cells[row-1][col] == "node":
+                    # Find which node is in each cell
+                    current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
+                    above_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row-1 < n.row + n.height), None)
+                    if current_node is None or above_node is None or current_node.letter_id != above_node.letter_id:
+                        is_redundant = False
+                        break
+                else:
+                    is_redundant = False
+                    break
+            
+            # If they're redundant, remove the current row
+            if is_redundant:
                 self.cells.pop(row)
                 # Update node positions
                 for node in self.nodes:
                     if node.row > row:
                         node.row -= 1
-                logging.info(f"Removed redundant row {row}")
+                self.logger.log_grid_operation("Removed redundant row", self)
 
     def _update_node_positions_after_purge(self) -> None:
         """Update node positions after purging rows/columns.
