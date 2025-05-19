@@ -75,20 +75,20 @@ class CellGrid:
     
 
     # add the same column again to the right of its current position
-    def clone_column(self, colIndex: int):
+    def clone_column(self, col_index: int):
         # Get the column to clone
-        column_to_clone = [row[colIndex] for row in self.cells]
+        column_to_clone = [row[col_index] for row in self.cells]
 
         # Insert the cloned column to the right of the original
         for i, row in enumerate(self.cells):
-            row.insert(colIndex + 1, column_to_clone[i])
+            row.insert(col_index + 1, column_to_clone[i])
 
-    def clone_row(self, rowIndex: int):
+    def clone_row(self, row_index: int):
         # Get the row to clone
-        row_to_clone = self.cells[rowIndex]
+        row_to_clone = self.cells[row_index]
 
         # Insert the cloned row below the original
-        self.cells.insert(rowIndex + 1, row_to_clone)
+        self.cells.insert(row_index + 1, row_to_clone)
 
     def clone_random_valid_column_or_row(self) -> None:
         # Get all clonable columns and rows
@@ -189,3 +189,59 @@ class CellGrid:
         
         return valid_cells
         
+    def _can_extend_right(self, row: int, col: int, width: int) -> bool:
+        # Check if we can extend one more column to the right
+        if col + width >= len(self.cells[0]):
+            return False
+        return all(self.cells[row][col + width] == "empty")
+
+    def _can_extend_down(self, row: int, col: int, height: int) -> bool:
+        # Check if we can extend one more row down
+        if row + height >= len(self.cells):
+            return False
+        return all(self.cells[row + height][col + i] == "empty" for i in range(width))
+
+    def _expand_node(self, row: int, col: int) -> tuple[int, int]:
+        # Start with 1x1 node
+        width = 1
+        height = 1
+        
+        # Expand right as much as possible
+        while self._can_extend_right(row, col, width):
+            width += 1
+            
+        # Expand down as much as possible
+        while self._can_extend_down(row, col, height):
+            height += 1
+            
+        return width, height
+
+    def add_node_at_random_empty_cell(self, node_content: str) -> None:
+        # 1) Find cells with no node neighbors
+        valid_cells = self.get_empty_cells_with_no_node_neighbors()
+        
+        # 2) If none exist, try to create space
+        while not valid_cells:
+            # 50% chance for each operation
+            if random.random() < 0.5:
+                self.add_empty_row_or_column_at_start_or_end_randomly()
+            else:
+                self.clone_random_valid_column_or_row()
+            valid_cells = self.get_empty_cells_with_no_node_neighbors()
+        
+        # 4) Choose random valid cell
+        row, col = random.choice(valid_cells)
+        
+        # 5) Insert the node and expand it
+        width, height = self._expand_node(row, col)
+        
+        # Create and store the node
+        node = GridNode(node_content, col, row, width, height)
+        if not hasattr(self, 'nodes'):
+            self.nodes = []
+        self.nodes.append(node)
+        
+        # Fill the grid with the node
+        for i in range(row, row + height):
+            for j in range(col, col + width):
+                self.cells[i][j] = "node"
