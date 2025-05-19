@@ -1,25 +1,28 @@
-from typing import Literal
-from models.edge import Edge
-from models.node import Node
+from typing import TYPE_CHECKING, Literal, List, Dict, Tuple
+from models.interfaces import Renderable
 
-class Cell:
+if TYPE_CHECKING:
+    from models.edge import Edge
+    from models.node import Node
+
+class Cell(Renderable):
     content: any
     row: int
     column: int
 
     def render(self) -> str:
-        return "·"
+        return "."
 
 
 class NodeCell(Cell):
-    node: Node
+    node: 'Node'
 
     def render(self) -> str:
         return self.node.content
 
 
 class EdgeCell(Cell):
-    edge: Edge
+    edge: 'Edge'
 
     hasNorthConnection: bool
     hasEastConnection: bool
@@ -31,75 +34,137 @@ class EdgeCell(Cell):
     hasSouthArrow: bool
     hasWestArrow: bool
 
-    # use unicode arrows like
-    # ↑ → ↓ ← ┐ ┌ ┘ └ ┬ ┴ ┤ ├ and so on
-    # check first purely for edges, then replace with same symbol with arrowhead if needed
+    def __init__(self):
+        super().__init__()
+        self.hasNorthConnection = False
+        self.hasEastConnection = False
+        self.hasSouthConnection = False
+        self.hasWestConnection = False
+        self.hasNorthArrow = False
+        self.hasEastArrow = False
+        self.hasSouthArrow = False
+        self.hasWestArrow = False
+
+    # Mapping of connection patterns to their base symbols
+    CONNECTION_PATTERNS: Dict[Tuple[bool, bool, bool, bool], str] = {
+        # (north, east, south, west)
+        (True, True, True, True): "┼",    # Cross
+        (True, True, True, False): "├",   # T pointing right
+        (True, False, True, True): "┤",   # T pointing left
+        (True, False, True, False): "│",  # Vertical line
+        (False, True, False, True): "─",  # Horizontal line
+        (True, True, False, False): "└",  # Corner
+        (True, False, False, True): "┘",  # Corner
+        (False, True, True, False): "┌",  # Corner
+        (False, False, True, True): "┐",  # Corner
+    }
+
+    # Mapping of arrow patterns to their symbols
+    ARROW_PATTERNS: Dict[Tuple[bool, bool, bool, bool], Dict[str, str]] = {
+        # (north, east, south, west) -> {base_symbol: arrow_symbol}
+        (False, True, False, True): {  # Horizontal line
+            "─": "↔",
+            "→": "→",
+            "←": "←"
+        },
+        (True, False, True, False): {  # Vertical line
+            "│": "↕",
+            "↑": "↑",
+            "↓": "↓"
+        },
+        (True, True, False, False): {  # Corner
+            "└": "⬑",
+            "⬏": "⬏"
+        },
+        (True, False, False, True): {  # Corner
+            "┘": "⬏",
+            "⬑": "⬑"
+        },
+        (False, True, True, False): {  # Corner
+            "┌": "⬏",
+            "⬑": "⬑"
+        },
+        (False, False, True, True): {  # Corner
+            "┐": "⬑",
+            "⬏": "⬏"
+        }
+    }
+
+    @classmethod
+    def from_symbol(cls, symbol: str) -> Tuple[bool, bool, bool, bool, bool, bool, bool, bool]:
+        """Convert a symbol back to connection and arrow states."""
+        # First find the base pattern
+        for (n, e, s, w), base_symbol in cls.CONNECTION_PATTERNS.items():
+            if symbol == base_symbol:
+                return (n, e, s, w, False, False, False, False)
+            
+            # Check arrow patterns
+            if (n, e, s, w) in cls.ARROW_PATTERNS:
+                for arrow_symbol in cls.ARROW_PATTERNS[(n, e, s, w)].values():
+                    if symbol == arrow_symbol:
+                        # Determine arrow directions based on the symbol
+                        has_north = n and symbol in ["↑", "⬑", "⬏"]
+                        has_east = e and symbol in ["→", "⬑", "⬏"]
+                        has_south = s and symbol in ["↓", "⬑", "⬏"]
+                        has_west = w and symbol in ["←", "⬑", "⬏"]
+                        return (n, e, s, w, has_north, has_east, has_south, has_west)
+        
+        return (False, False, False, False, False, False, False, False)
+
     def render(self) -> str:
-        # First determine the basic edge shape
-        if self.hasNorthConnection and self.hasSouthConnection:
-            if self.hasEastConnection and self.hasWestConnection:
-                base_char = "┼"  # Cross
-            elif self.hasEastConnection:
-                base_char = "├"  # T pointing right
-            elif self.hasWestConnection:
-                base_char = "┤"  # T pointing left
-            else:
-                base_char = "│"  # Vertical line
-        elif self.hasEastConnection and self.hasWestConnection:
-            if self.hasNorthConnection:
-                base_char = "┴"  # T pointing up
-            elif self.hasSouthConnection:
-                base_char = "┬"  # T pointing down
-            else:
-                base_char = "─"  # Horizontal line
-        elif self.hasNorthConnection and self.hasEastConnection:
-            base_char = "└"  # Corner
-        elif self.hasNorthConnection and self.hasWestConnection:
-            base_char = "┘"  # Corner
-        elif self.hasSouthConnection and self.hasEastConnection:
-            base_char = "┌"  # Corner
-        elif self.hasSouthConnection and self.hasWestConnection:
-            base_char = "┐"  # Corner
-        else:
-            return "·"  # No connections
-
-        # Add arrowheads where needed
-        if base_char == "─":  # Horizontal line
-            if self.hasEastArrow and self.hasWestArrow:
+        # Get the base symbol based on connections
+        connections = (
+            self.hasNorthConnection,
+            self.hasEastConnection,
+            self.hasSouthConnection,
+            self.hasWestConnection
+        )
+        
+        base_symbol = self.CONNECTION_PATTERNS.get(connections, "·")
+        
+        # If no connections, return the dot
+        if base_symbol == "·":
+            return base_symbol
+            
+        # Check for arrow patterns
+        if connections in self.ARROW_PATTERNS:
+            arrow_patterns = self.ARROW_PATTERNS[connections]
+            
+            # Check for bidirectional arrows first
+            if (self.hasEastArrow and self.hasWestArrow and base_symbol == "─"):
                 return "↔"
-            elif self.hasEastArrow:
-                return "→"
-            elif self.hasWestArrow:
-                return "←"
-        elif base_char == "│":  # Vertical line
-            if self.hasNorthArrow and self.hasSouthArrow:
+            if (self.hasNorthArrow and self.hasSouthArrow and base_symbol == "│"):
                 return "↕"
-            elif self.hasNorthArrow:
+                
+            # Check for single direction arrows
+            if self.hasEastArrow and base_symbol == "─":
+                return "→"
+            if self.hasWestArrow and base_symbol == "─":
+                return "←"
+            if self.hasNorthArrow and base_symbol == "│":
                 return "↑"
-            elif self.hasSouthArrow:
+            if self.hasSouthArrow and base_symbol == "│":
                 return "↓"
-        elif base_char == "└":  # Corner
-            if self.hasNorthArrow:
+                
+            # Check for corner arrows
+            if self.hasNorthArrow and base_symbol == "└":
                 return "⬑"
-            elif self.hasEastArrow:
+            if self.hasEastArrow and base_symbol == "└":
                 return "⬏"
-        elif base_char == "┘":  # Corner
-            if self.hasNorthArrow:
+            if self.hasNorthArrow and base_symbol == "┘":
                 return "⬏"
-            elif self.hasWestArrow:
+            if self.hasWestArrow and base_symbol == "┘":
                 return "⬑"
-        elif base_char == "┌":  # Corner
-            if self.hasSouthArrow:
+            if self.hasSouthArrow and base_symbol == "┌":
                 return "⬏"
-            elif self.hasEastArrow:
+            if self.hasEastArrow and base_symbol == "┌":
                 return "⬑"
-        elif base_char == "┐":  # Corner
-            if self.hasSouthArrow:
+            if self.hasSouthArrow and base_symbol == "┐":
                 return "⬑"
-            elif self.hasWestArrow:
+            if self.hasWestArrow and base_symbol == "┐":
                 return "⬏"
-
-        return base_char
+        
+        return base_symbol
 
 
     
