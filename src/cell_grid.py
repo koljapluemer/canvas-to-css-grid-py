@@ -261,3 +261,80 @@ class CellGrid:
         for i in range(row, row + height):
             for j in range(col, col + width):
                 self.cells[i][j] = "node"
+
+    @staticmethod
+    def from_string(grid_str: str) -> "CellGrid":
+        """Create a grid from a string representation.
+        
+        Example:
+            grid_str = '''
+            aa→b·
+            ····c
+            '''
+            - Same letters represent the same node
+            - '·' represents empty cells
+            - '→' represents edge cells
+            
+        Raises:
+            ValueError: If a letter is used for multiple disconnected nodes
+            ValueError: If a node is not a solid rectangle
+        """
+        # Split into lines and remove empty lines
+        lines = [line.strip() for line in grid_str.strip().split('\n') if line.strip()]
+        
+        # Create the grid with empty cells
+        height = len(lines)
+        width = len(lines[0])
+        grid = CellGrid([["empty" for _ in range(width)] for _ in range(height)])
+        
+        # Track nodes by their letter
+        nodes_by_letter: dict[str, list[tuple[int, int]]] = {}
+        
+        # First pass: collect all cells for each node
+        for i, line in enumerate(lines):
+            for j, char in enumerate(line):
+                if char == '·':
+                    continue
+                elif char == '→':
+                    grid.cells[i][j] = "edge-E_W"
+                else:
+                    # This is a node cell
+                    grid.cells[i][j] = "node"
+                    if char not in nodes_by_letter:
+                        nodes_by_letter[char] = []
+                    nodes_by_letter[char].append((i, j))
+        
+        # Validate each node is a solid rectangle
+        for letter, cells in nodes_by_letter.items():
+            # Find the bounding box of the node
+            min_row = min(i for i, _ in cells)
+            max_row = max(i for i, _ in cells)
+            min_col = min(j for _, j in cells)
+            max_col = max(j for _, j in cells)
+            
+            # Check if all cells in the bounding box are part of this node
+            for i in range(min_row, max_row + 1):
+                for j in range(min_col, max_col + 1):
+                    if (i, j) not in cells:
+                        raise ValueError(f"Node '{letter}' is not a solid rectangle")
+        
+        # Second pass: create GridNode objects for each letter
+        grid.nodes = []
+        for letter, cells in nodes_by_letter.items():
+            # Find the bounding box of the node
+            min_row = min(i for i, _ in cells)
+            max_row = max(i for i, _ in cells)
+            min_col = min(j for _, j in cells)
+            max_col = max(j for _, j in cells)
+            
+            # Create the node
+            node = GridNode(
+                content=letter,
+                col=min_col,
+                row=min_row,
+                width=max_col - min_col + 1,
+                height=max_row - min_row + 1
+            )
+            grid.nodes.append(node)
+        
+        return grid
