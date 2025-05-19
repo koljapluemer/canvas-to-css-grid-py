@@ -50,8 +50,10 @@ def make_grid_from_json(json_path: str) -> CellGrid:
 
 if __name__ == "__main__":
     # Example usage
-    json_path = "data/json-diagrams/godot_instantiating.canvas"
+    json_path = "data/json-diagrams/simple.canvas"
     grid = make_grid_from_json(json_path)
+    grid.purge_redundant_columns()
+    grid.purge_redundant_rows()
     print("```")
     print(grid.render())
     print("```")

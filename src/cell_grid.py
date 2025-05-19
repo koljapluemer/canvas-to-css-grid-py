@@ -302,6 +302,30 @@ class CellGrid:
             for j in range(col, col + width):
                 self.cells[i][j] = "node"
 
+
+    def purge_redundant_columns(self) -> None:
+        # a column is redundant if the column to its left has EXACTLY the same content (if it exists)
+        # if it redundant in this way, remove it from the grid
+        # reverse traversal so we don't mess up the index
+        for col in range(len(self.cells[0]) - 1, 0, -1):  # start from rightmost column, go left
+            # Get the current column and the one to its left
+            current_col = [row[col] for row in self.cells]
+            left_col = [row[col - 1] for row in self.cells]
+            
+            # If they're identical, remove the current column
+            if current_col == left_col:
+                for row in self.cells:
+                    row.pop(col)
+
+    def purge_redundant_rows(self) -> None:
+        # a row is redundant if the row above it has EXACTLY the same content (if it exists)
+        # if it redundant in this way, remove it from the grid
+        # reverse traversal so we don't mess up the index
+        for row in range(len(self.cells) - 1, 0, -1):  # start from bottom row, go up
+            # If current row is identical to the one above it, remove it
+            if self.cells[row] == self.cells[row - 1]:
+                self.cells.pop(row)
+
     @staticmethod
     def from_string(grid_str: str) -> "CellGrid":
         """Create a grid from a string representation.
