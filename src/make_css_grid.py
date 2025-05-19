@@ -11,6 +11,7 @@ from make_grid_from_json import make_grid_from_json
 from cell_grid import CellGrid
 import re
 import os
+
 def sanitize_area_name(content: str) -> str:
     """Convert node content to a valid CSS grid area name.
     
@@ -97,20 +98,66 @@ def generate_html(grid: CellGrid) -> str:
     return html
 
 def main():
-    # Example usage
-    grid_path = "data/json-diagrams/godot_instantiating.canvas" 
-    # Create a grid from JSON
+    from pyjsoncanvas import Canvas
+    import logging
+    import random
+
+    grid_path = "data/json-diagrams/simple.canvas"
+    with open(grid_path, 'r') as f:
+        canvas = Canvas.from_json(f.read())
+
     grid = make_grid_from_json(grid_path)
+    print("Initial grid:")
+    print(grid.render_with_named_nodes())
+
+    # Build a mapping from node id to GridNode
+    id_to_gridnode = {}
+    for node in canvas.nodes:
+        for gnode in grid.nodes:
+            if hasattr(node, 'file') and gnode.content == node.file:
+                id_to_gridnode[node.id] = gnode
+            elif hasattr(node, 'text') and gnode.content == node.text:
+                id_to_gridnode[node.id] = gnode
+            elif hasattr(node, 'id') and gnode.content == str(node.id):
+                id_to_gridnode[node.id] = gnode
+
+    # Add edges with space-creation logic
+    for edge in getattr(canvas, 'edges', []):
+        from_id = getattr(edge, 'fromNode', None)
+        to_id = getattr(edge, 'toNode', None)
+        label = getattr(edge, 'label', None)
+        from_node = id_to_gridnode.get(from_id)
+        to_node = id_to_gridnode.get(to_id)
+        if from_node and to_node:
+            grid.logger.log_grid_operation(f"Attempting to add edge from {from_node.content} to {to_node.content} (label: {label})", grid)
+            success = grid.add_edge(from_node, to_node, label)
+            # If not successful, try to create space until it works
+            while not success:
+                grid.logger.log_grid_operation("No valid edge path found, attempting to create space...", grid)
+                if random.random() < 0.5:
+                    grid.logger.log_grid_operation("Attempting to add empty row/column for edge...", grid)
+                    grid.add_empty_row_or_column_at_start_or_end_randomly()
+                else:
+                    grid.logger.log_grid_operation("Attempting to clone row/column for edge...", grid)
+                    grid.clone_random_valid_column_or_row()
+                success = grid.add_edge(from_node, to_node, label)
+            grid.logger.log_grid_operation(f"Successfully added edge from {from_node.content} to {to_node.content}", grid)
+        else:
+            grid.logger.log_grid_operation(f"Could not find nodes for edge: {from_id} -> {to_id}", grid)
+
+    print("\nGrid after adding edges:")
+    print(grid.render_with_named_nodes())
+
+    # Now purge redundant rows/columns after all edges are drawn
     grid.purge_redundant_columns()
     grid.purge_redundant_rows()
-    print(grid.render_with_named_nodes())
-    # Generate HTML
-    html = generate_html(grid)
     
-    # Write to file
+    print("\nFinal grid after purging:")
+    print(grid.render_with_named_nodes())
+
+    html = generate_html(grid)
     output_dir = "html_output"
     os.makedirs(output_dir, exist_ok=True)
-    # grid name is filename without extension and path
     grid_name = os.path.splitext(os.path.basename(grid_path))[0]
     with open(os.path.join(output_dir, f"{grid_name}.html"), "w") as f:
         f.write(html)

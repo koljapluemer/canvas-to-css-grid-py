@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 from grid_logger import GridLogger
+from collections import deque
 
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)
@@ -33,10 +34,10 @@ class GridNode:
         self.letter_id = letter_id
 
 class GridEdge:
-    from_node: GridNode
-    to_node: GridNode
-    label: str | None
-
+    def __init__(self, from_node: GridNode, to_node: GridNode, label: str | None):
+        self.from_node = from_node
+        self.to_node = to_node
+        self.label = label
 
 # each edge cell can have connectors to the four cardinal directions
 # we code them with keys like "eNE__", where an existing letter means the connector is present
@@ -67,6 +68,7 @@ class CellGrid:
         self.cells = rows
         self.logger = GridLogger()
         self.nodes = []
+        self.edges = []  # Initialize edges attribute
         self._next_letter_id = 0
         self.debug_level = 2  # 0 = normal, 1 = verbose, 2 = deep debug
 
@@ -610,3 +612,122 @@ class CellGrid:
             grid.nodes.append(node)
         
         return grid
+    
+
+    # grid-based Manhattan pathfinding from one node to another
+    # first, get the cell of start and end node down by getting valid anchor cells
+    # and choosing a random one from each
+    # then, use Manhattan
+    # draw the path with the correct symbols by utilizing the CELL dict
+    # for example, if a given cell of the edge has a connection above and one to the right, use eNE__
+
+    # cells with node's in them are impassable, as are most edge notes
+    # crossing a cell that already contains an edge (= cell name begins with "edge-") has a high cost, but is SOMETIMES allowed
+    # the only situations where we may pass an edge is the following:
+
+    # 1) we want to go vertical ("N_S_"), and the cell that we want to use is EXACTLY!! occupied with "_E_W"
+    # 2) we want to go horizontal ("_E_W"), and the cell that we want to use is EXACTLY occupied with "N_S_"
+
+    # in these case, we may go to this cell and place in it "edge-NESW": "┼" (the symbol for a horizontal and a vertical edge crossing)
+    # no other edge cells may be traversed or reused, ever
+    def add_edge(self, from_node: GridNode, to_node: GridNode, label: str | None = None) -> bool:
+        self.logger.log_grid_operation(f"Starting to add edge from {from_node.content} to {to_node.content} (label: {label})", self)
+
+        # 1. Get anchor cells
+        from_anchors = self.get_valid_anchor_cells_for_node(from_node)
+        to_anchors = self.get_valid_anchor_cells_for_node(to_node)
+        if not from_anchors or not to_anchors:
+            self.logger.log_grid_operation(f"No valid anchor cells for edge from {from_node.content} to {to_node.content}", self)
+            return False
+        start = random.choice(from_anchors)
+        end = random.choice(to_anchors)
+        self.logger.log_grid_operation(f"Selected anchors: {start} -> {end}", self)
+
+        rows, cols = len(self.cells), len(self.cells[0])
+        queue = deque()
+        queue.append((start, []))
+        visited = set()
+        visited.add(start)
+
+        def can_traverse(curr, nxt):
+            ci, cj = curr
+            ni, nj = nxt
+            cell = self.cells[ni][nj]
+            if cell == "node":
+                return False
+            if cell.startswith("edge-"):
+                # Only allow special crossing cases
+                if ci != ni and cell == "edge-E_W":  # vertical move into horizontal edge
+                    return True
+                if cj != nj and cell == "edge-N_S_":  # horizontal move into vertical edge
+                    return True
+                return False
+            return True
+
+        def get_direction(a, b):
+            if a is None or b is None:
+                return None
+            ai, aj = a
+            bi, bj = b
+            if ai == bi:
+                return "E" if bj > aj else "W"
+            elif aj == bj:
+                return "S" if bi > ai else "N"
+            return None
+
+        # 2. BFS for Manhattan path
+        found_path = None
+        while queue:
+            (ci, cj), path = queue.popleft()
+            if (ci, cj) == end:
+                found_path = path + [(ci, cj)]
+                break
+            for di, dj in [(-1,0),(1,0),(0,-1),(0,1)]:
+                ni, nj = ci+di, cj+dj
+                if 0 <= ni < rows and 0 <= nj < cols and (ni, nj) not in visited:
+                    if can_traverse((ci, cj), (ni, nj)):
+                        queue.append(((ni, nj), path + [(ci, cj)]))
+                        visited.add((ni, nj))
+        if not found_path:
+            self.logger.log_grid_operation(f"No path found for edge from {from_node.content} to {to_node.content}", self)
+            return False
+        self.logger.log_grid_operation(f"Path found for edge: {found_path}", self)
+
+        # 3. Draw the path with correct connectors
+        for i in range(len(found_path)):
+            prev = found_path[i - 1] if i > 0 else None
+            curr = found_path[i]
+            next = found_path[i + 1] if i < len(found_path) - 1 else None
+            ci, cj = curr
+            current_cell = self.cells[ci][cj]
+
+            dir_from = get_direction(prev, curr)
+            dir_to = get_direction(curr, next)
+
+            # Only use actual directions present (no duplicates, no axis confusion)
+            dirs = set()
+            if dir_from:
+                dirs.add(dir_from)
+            if dir_to:
+                dirs.add(dir_to)
+
+            # Compose edge key
+            key = ["_", "_", "_", "_"]  # N E S W
+            for d in dirs:
+                if d == "N": key[0] = "N"
+                if d == "E": key[1] = "E"
+                if d == "S": key[2] = "S"
+                if d == "W": key[3] = "W"
+            edge_key = "edge-" + "".join(key)
+            # Special case: crossing
+            if current_cell == "edge-E_W" and ("N" in dirs or "S" in dirs):
+                edge_key = "edge-NESW"
+            if current_cell == "edge-N_S_" and ("E" in dirs or "W" in dirs):
+                edge_key = "edge-NESW"
+            if self.debug_level >= 2:
+                self.logger.log_debug(f"Drawing edge at {curr}: {edge_key}, dirs={dirs}, prev={prev}, next={next}")
+            self.cells[ci][cj] = edge_key if edge_key in CELL else "edge-NESW"
+
+        self.logger.log_grid_operation(f"Finished drawing edge from {from_node.content} to {to_node.content}", self)
+        self.edges.append(GridEdge(from_node, to_node, label))
+        return True
