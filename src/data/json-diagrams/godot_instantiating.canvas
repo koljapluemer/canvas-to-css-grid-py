@@ -1,0 +1,36 @@
+{
+	"nodes":[
+		{"id":"a6c100b4bead65cb","type":"file","file":"Infographics/000 Godot Instantiating/⚙️ Enable Editable Children.md","x":-1840,"y":-4503,"width":1720,"height":743,"color":"5"},
+		{"id":"8638aebcd5768df8","type":"file","file":"Infographics/000 Godot Instantiating/⚙️ Make Local.md","x":-40,"y":-4503,"width":1960,"height":671,"color":"5"},
+		{"id":"c73d92363dfa7ccf","type":"file","file":"Infographics/000 Godot Instantiating/🌱 Call `.instantiate().md","x":-1872,"y":-3640,"width":1000,"height":726,"color":"4"},
+		{"id":"c09eb846a8a5f65b","type":"file","file":"Infographics/000 Godot Instantiating/🌱 Call `.new()`.md","x":-1872,"y":-2793,"width":1064,"height":713,"color":"4"},
+		{"id":"a8e4801bb12b48dd","type":"file","file":"Infographics/000 Godot Instantiating/📜 Things you do in a `.gd` Script.md","x":-2640,"y":-2964,"width":680,"height":214,"color":"4"},
+		{"id":"faa8de6073932fea","type":"file","file":"Infographics/000 Godot Instantiating/🚗 Original Scene.md","x":-2640,"y":-4503,"width":680,"height":1210,"color":"1"},
+		{"id":"59c2a9908f8c213f","type":"text","text":"# the many ways of instantiating/duplicating/spawning a scene in Godot 4","x":-2640,"y":-4800,"width":3880,"height":160},
+		{"id":"4479e66e5fc529c2","type":"text","text":"@Kolja Sam, [koljapluemer.com](https://koljapluemer.com/), v1.0\n*Up to date for Godot 4.3, mistakes are mine :)*","x":-2640,"y":-4640,"width":800,"height":100},
+		{"id":"d9260d4fbf2d785d","type":"file","file":"Infographics/000 Godot Instantiating/🌱 Add as Child Node.md","x":-200,"y":-2914,"width":1400,"height":834,"color":"6"},
+		{"id":"54a84d5bbd25cf66","type":"file","file":"Infographics/000 Godot Instantiating/🌱 Instantiate Child Scene.md","x":-200,"y":-3583,"width":1400,"height":580,"color":"6"},
+		{"id":"50c7cebfbe1582a5","type":"text","text":"**instantiating**","x":-602,"y":-3505,"width":210,"height":50},
+		{"id":"4c183d8bce415b30","type":"text","text":"**adding as a node**","x":-665,"y":-2320,"width":273,"height":80},
+		{"id":"b1440c4d7002454b","type":"file","file":"Infographics/000 Godot Instantiating/🌱 New Inherited Scene.md","x":1240,"y":-3640,"width":560,"height":1480,"color":"5"},
+		{"id":"283036a8494f6969","type":"file","file":"Infographics/000 Godot Instantiating/📜 Things you do in the `FileSystem` Dock.md","x":2020,"y":-4131,"width":820,"height":299,"color":"5"},
+		{"id":"094746e288dad631","type":"file","file":"Infographics/000 Godot Instantiating/🌱 Duplicate Scene File.md","x":1840,"y":-3648,"width":1130,"height":788,"color":"5"},
+		{"id":"718f96555856466a","type":"file","file":"Infographics/000 Godot Instantiating/⚙️ Clear Inheritance.md","x":1840,"y":-2793,"width":1130,"height":713,"color":"5"},
+		{"id":"2ec1dfdc6fb9d824","type":"file","file":"Infographics/000 Godot Instantiating/📜 Things you do in the `Scene` Dock.md","x":-808,"y":-3127,"width":560,"height":270,"color":"6"}
+	],
+	"edges":[
+		{"id":"690db806996ee956","fromNode":"4c183d8bce415b30","fromSide":"left","toNode":"c09eb846a8a5f65b","toSide":"right"},
+		{"id":"0d8ed08d03e1878f","fromNode":"4c183d8bce415b30","fromSide":"right","toNode":"d9260d4fbf2d785d","toSide":"left"},
+		{"id":"5d4f50333abef56d","fromNode":"a8e4801bb12b48dd","fromSide":"right","toNode":"c73d92363dfa7ccf","toSide":"left","color":"4"},
+		{"id":"32576c66dfc5f5d3","fromNode":"a8e4801bb12b48dd","fromSide":"right","toNode":"c09eb846a8a5f65b","toSide":"left","color":"4"},
+		{"id":"c326e341ec6d4948","fromNode":"50c7cebfbe1582a5","fromSide":"right","toNode":"54a84d5bbd25cf66","toSide":"left"},
+		{"id":"98ca25b18e729b82","fromNode":"50c7cebfbe1582a5","fromSide":"left","toNode":"c73d92363dfa7ccf","toSide":"right"},
+		{"id":"cc316fda661718a9","fromNode":"54a84d5bbd25cf66","fromSide":"top","toNode":"a6c100b4bead65cb","toSide":"bottom","label":"additional action"},
+		{"id":"c5525d0043433b02","fromNode":"54a84d5bbd25cf66","fromSide":"top","toNode":"8638aebcd5768df8","toSide":"bottom","label":"additional action"},
+		{"id":"87ac61911f84c7e3","fromNode":"283036a8494f6969","fromSide":"bottom","toNode":"b1440c4d7002454b","toSide":"top","color":"5"},
+		{"id":"0510bbfb1c6f9cda","fromNode":"2ec1dfdc6fb9d824","fromSide":"bottom","toNode":"d9260d4fbf2d785d","toSide":"left","color":"6"},
+		{"id":"965db22ef87818e8","fromNode":"2ec1dfdc6fb9d824","fromSide":"top","toNode":"54a84d5bbd25cf66","toSide":"left","color":"6"},
+		{"id":"d28a29aa62b422b2","fromNode":"b1440c4d7002454b","fromSide":"bottom","toNode":"718f96555856466a","toSide":"bottom","label":"additional action\n\n"},
+		{"id":"8526560299c5935f","fromNode":"283036a8494f6969","fromSide":"bottom","toNode":"094746e288dad631","toSide":"top","color":"5"}
+	]
+}

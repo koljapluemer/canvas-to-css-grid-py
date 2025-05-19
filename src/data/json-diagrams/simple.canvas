@@ -1,0 +1,9 @@
+{
+	"nodes":[
+		{"id":"82ed482196b563f9","type":"file","file":"Thoughts/📝 Technology-mediated task-based language teaching﹕ A research agenda.md","x":-540,"y":-300,"width":800,"height":100},
+		{"id":"ce4765e220ecf14c","type":"file","file":"Thoughts/~ TMTBLT should be meaning-based, goal-oriented, personalized, holistic and include reflection.md","x":-420,"y":0,"width":800,"height":160,"color":"2"}
+	],
+	"edges":[
+		{"id":"5c3e011ad28f689f","fromNode":"82ed482196b563f9","fromSide":"bottom","toNode":"ce4765e220ecf14c","toSide":"top"}
+	]
+}
