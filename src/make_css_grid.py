@@ -98,7 +98,7 @@ def generate_html(grid: CellGrid) -> str:
 
 def main():
     # Example usage
-    grid_path = "data/json-diagrams/simple.canvas" 
+    grid_path = "data/json-diagrams/godot_instantiating.canvas" 
     # Create a grid from JSON
     grid = make_grid_from_json(grid_path)
     grid.purge_redundant_columns()
