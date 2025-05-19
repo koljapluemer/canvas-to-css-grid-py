@@ -426,6 +426,7 @@ class CellGrid:
                     # Find which node is in each cell
                     current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
                     left_node = next((n for n in self.nodes if n.col <= col-1 < n.col + n.width and n.row <= row < n.row + n.height), None)
+                    # Only consider redundant if both cells are part of the same node
                     if current_node is None or left_node is None or current_node.letter_id != left_node.letter_id:
                         is_redundant = False
                         break
@@ -435,13 +436,23 @@ class CellGrid:
             
             # If they're redundant, remove the current column
             if is_redundant:
-                for row in self.cells:
-                    row.pop(col)
-                # Update node positions
-                for node in self.nodes:
-                    if node.col > col:
-                        node.col -= 1
-                self.logger.log_grid_operation("Removed redundant column", self)
+                # Before removing, verify that we're not accidentally merging different nodes
+                for row in range(len(self.cells)):
+                    if self.cells[row][col] == "node" and self.cells[row][col-1] == "node":
+                        current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
+                        left_node = next((n for n in self.nodes if n.col <= col-1 < n.col + n.width and n.row <= row < n.row + n.height), None)
+                        if current_node is None or left_node is None or current_node.letter_id != left_node.letter_id:
+                            is_redundant = False
+                            break
+                
+                if is_redundant:
+                    for row in self.cells:
+                        row.pop(col)
+                    # Update node positions
+                    for node in self.nodes:
+                        if node.col > col:
+                            node.col -= 1
+                    self.logger.log_grid_operation("Removed redundant column", self)
 
     def purge_redundant_rows(self) -> None:
         # First remove entirely empty rows
@@ -467,6 +478,7 @@ class CellGrid:
                     # Find which node is in each cell
                     current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
                     above_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row-1 < n.row + n.height), None)
+                    # Only consider redundant if both cells are part of the same node
                     if current_node is None or above_node is None or current_node.letter_id != above_node.letter_id:
                         is_redundant = False
                         break
@@ -476,12 +488,22 @@ class CellGrid:
             
             # If they're redundant, remove the current row
             if is_redundant:
-                self.cells.pop(row)
-                # Update node positions
-                for node in self.nodes:
-                    if node.row > row:
-                        node.row -= 1
-                self.logger.log_grid_operation("Removed redundant row", self)
+                # Before removing, verify that we're not accidentally merging different nodes
+                for col in range(len(self.cells[0])):
+                    if self.cells[row][col] == "node" and self.cells[row-1][col] == "node":
+                        current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
+                        above_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row-1 < n.row + n.height), None)
+                        if current_node is None or above_node is None or current_node.letter_id != above_node.letter_id:
+                            is_redundant = False
+                            break
+                
+                if is_redundant:
+                    self.cells.pop(row)
+                    # Update node positions
+                    for node in self.nodes:
+                        if node.row > row:
+                            node.row -= 1
+                    self.logger.log_grid_operation("Removed redundant row", self)
 
     def _update_node_positions_after_purge(self) -> None:
         """Update node positions after purging rows/columns.

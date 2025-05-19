@@ -33,13 +33,24 @@ def grid_to_css_grid(grid: CellGrid) -> str:
     
     # Fill in the areas based on nodes
     for node in grid.nodes:
-        area_name = sanitize_area_name(node.content)
+        # Use the node's letter_id directly
+        area_name = node.letter_id
+        # Ensure we have enough rows and columns
+        while len(areas) < node.row + node.height:
+            areas.append(["." for _ in range(len(areas[0]))])
+        for row in areas:
+            while len(row) < node.col + node.width:
+                row.append(".")
+        # Fill in the node's area
         for i in range(node.row, node.row + node.height):
             for j in range(node.col, node.col + node.width):
-                areas[i][j] = area_name
+                if 0 <= i < len(areas) and 0 <= j < len(areas[i]):
+                    areas[i][j] = area_name
     
     # Convert to CSS grid-template-areas format
-    return "\n  ".join(f'"{row}"' for row in [" ".join(row) for row in areas])
+    # Each row should be on its own line and properly quoted
+    area_rows = [f'"{row}"' for row in [" ".join(row) for row in areas]]
+    return "\n            ".join(area_rows)
 
 def generate_html(grid: CellGrid) -> str:
     """Generate an HTML file with CSS grid layout."""
@@ -48,10 +59,10 @@ def generate_html(grid: CellGrid) -> str:
     # Generate CSS for each node
     node_styles = []
     for node in grid.nodes:
-        area_name = sanitize_area_name(node.content)
+        # Use the node's letter_id for the CSS class
         node_styles.append(f"""
-.{area_name} {{
-    grid-area: {area_name};
+.{node.letter_id} {{
+    grid-area: {node.letter_id};
 }}""")
     
     html = f"""<!DOCTYPE html>
@@ -61,7 +72,7 @@ def generate_html(grid: CellGrid) -> str:
         .grid-container {{
             display: grid;
             grid-template-areas:
-  {css_areas};
+            {css_areas};
             gap: 1rem;
             padding: 1rem;
             background: #f5f5f5;
@@ -86,8 +97,7 @@ def generate_html(grid: CellGrid) -> str:
     
     # Add divs for each node
     for node in grid.nodes:
-        area_name = sanitize_area_name(node.content)
-        html += f'        <div class="node {area_name}">{node.content}</div>\n'
+        html += f'        <div class="node {node.letter_id}">{node.content}</div>\n'
     
     html += """    </div>
 </body>
@@ -97,11 +107,12 @@ def generate_html(grid: CellGrid) -> str:
 
 def main():
     # Example usage
-    grid_path = "data/json-diagrams/godot_instantiating.canvas" 
+    grid_path = "data/json-diagrams/simple.canvas" 
     # Create a grid from JSON
     grid = make_grid_from_json(grid_path)
     grid.purge_redundant_columns()
     grid.purge_redundant_rows()
+    print(grid.render_with_named_nodes())
     # Generate HTML
     html = generate_html(grid)
     
