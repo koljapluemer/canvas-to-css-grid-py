@@ -1,21 +1,36 @@
 import random
 from typing import Literal, get_args, Dict
+import logging
+import os
+from datetime import datetime
+from grid_logger import GridLogger
 
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
 
+# Set up logging with timestamped filename
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+logging.basicConfig(
+    filename=f'logs/grid_operations_{timestamp}.log',
+    level=logging.INFO,
+    format='%(message)s'
+)
 
 class GridNode:
+    letter_id: str
     content: str
     col: int
     row: int
     width: int
     height: int
 
-    def __init__(self, content: str, col: int, row: int, width: int, height: int):
+    def __init__(self, content: str, col: int, row: int, width: int, height: int, letter_id: str):
         self.content = content
         self.col = col
         self.row = row
         self.width = width
         self.height = height
+        self.letter_id = letter_id
 
 class GridEdge:
     from_node: GridNode
@@ -42,14 +57,29 @@ CELL: Dict[str, str] = {
 
 class CellGrid:
     cells: list[list[str]]
-
-    # these are high-level structures
-    # that are NOT directly rendered
     nodes: list[GridNode]
     edges: list[GridEdge]
+    logger: GridLogger
+    _next_letter_id: int  # Track next available letter index
 
     def __init__(self, rows: list[list[str]]):
         self.cells = rows
+        self.logger = GridLogger()
+        self.nodes = []
+        self._next_letter_id = 0
+
+    def _get_next_letter_id(self) -> str:
+        """Get next available letter ID, starting with single letters then moving to pairs."""
+        if self._next_letter_id < 26:
+            letter = chr(ord('a') + self._next_letter_id)
+            self._next_letter_id += 1
+            return letter
+        else:
+            # For IDs beyond 'z', use pairs like 'aa', 'ab', etc.
+            first = chr(ord('a') + (self._next_letter_id // 26) - 1)
+            second = chr(ord('a') + (self._next_letter_id % 26))
+            self._next_letter_id += 1
+            return first + second
 
     def render(self) -> str:
         # render according to the CELL dict
@@ -60,6 +90,21 @@ class CellGrid:
                 rendered_row.append(CELL[cell])
             rendered_cells.append("".join(rendered_row))
         return "\n".join(rendered_cells)
+    
+
+    def render_with_named_nodes(self) -> str:
+        """Render the grid using node letter_ids."""
+        # Start with the basic render
+        rendered = self.render().split('\n')
+        
+        # For each node, overlay its letter_id
+        for node in self.nodes:
+            for row in range(node.row, node.row + node.height):
+                for col in range(node.col, node.col + node.width):
+                    if 0 <= row < len(rendered) and 0 <= col < len(rendered[row]):
+                        rendered[row] = rendered[row][:col] + node.letter_id + rendered[row][col + 1:]
+        
+        return '\n'.join(rendered)
     
 
     @staticmethod
@@ -95,6 +140,14 @@ class CellGrid:
         for i, row in enumerate(self.cells):
             row.insert(col_index + 1, column_to_clone[i])
             
+        # Update node positions and widths
+        for node in self.nodes:
+            if node.col > col_index:
+                node.col += 1
+            elif node.col <= col_index and node.col + node.width > col_index:
+                # If the node spans the cloned column, increase its width
+                node.width += 1
+            
         # Validate again after modification
         row_lengths = [len(row) for row in self.cells]
         if len(set(row_lengths)) != 1:
@@ -105,27 +158,31 @@ class CellGrid:
         row_to_clone = self.cells[row_index].copy()
         # Insert the cloned row below the original
         self.cells.insert(row_index + 1, row_to_clone)
+        
+        # Update node positions and heights
+        for node in self.nodes:
+            if node.row > row_index:
+                node.row += 1
+            elif node.row <= row_index and node.row + node.height > row_index:
+                # If the node spans the cloned row, increase its height
+                node.height += 1
 
     def clone_random_valid_column_or_row(self) -> None:
-        # Get all clonable columns and rows
         clonable_columns = self.get_clonable_columns()
         clonable_rows = self.get_clonable_rows()
+        self.logger.log_step(f"Found {len(clonable_columns)} clonable columns and {len(clonable_rows)} clonable rows", self.render())
         
-        # If there are no clonable columns or rows, return
-        if not clonable_columns and not clonable_rows:
-            return
-        
-        # Randomly choose between column and row if both are available
         will_clone_column = random.random() < 0.5 if clonable_columns and clonable_rows else bool(clonable_columns)
         
         if will_clone_column:
-            # Get the index of a random clonable column
             col_index = random.randrange(len(clonable_columns))
+            self.logger.log_step(f"Cloning column at index {col_index}", self.render())
             self.clone_column(col_index)
         else:
-            # Get the index of a random clonable row
             row_index = random.randrange(len(clonable_rows))
+            self.logger.log_step(f"Cloning row at index {row_index}", self.render())
             self.clone_row(row_index)
+        self.logger.log_step("Grid after cloning", self.render())
 
     def add_empty_row_at_index(self, index: int) -> None:
         # Validate all rows have the same length
@@ -161,14 +218,19 @@ class CellGrid:
         will_add_at_start = random.random() < 0.5
         if will_add_row:
             if will_add_at_start:
+                self.logger.log_step("Adding empty row at start", self.render())
                 self.add_empty_row_at_index(0)
             else:
+                self.logger.log_step("Adding empty row at end", self.render())
                 self.add_empty_row_at_index(len(self.cells))
         else:
             if will_add_at_start:
+                self.logger.log_step("Adding empty column at start", self.render())
                 self.add_empty_column_at_index(0)
             else:
+                self.logger.log_step("Adding empty column at end", self.render())
                 self.add_empty_column_at_index(len(self.cells[0]))
+        self.logger.log_step("Grid after adding row/column", self.render())
 
 
     def get_empty_cells(self) -> list[tuple[int, int]]:
@@ -232,23 +294,24 @@ class CellGrid:
         return valid_cells
         
     def _can_extend_right(self, row: int, col: int, width: int) -> bool:
-        # Check if we can extend one more column to the right
-        if col + width >= len(self.cells[0]):
+        # Check if we can extend two more columns to the right
+        if col + width + 1 >= len(self.cells[0]):
             return False
-        return self.cells[row][col + width] == "empty"
+        # Check if both the next column and the one after that are empty
+        return (self.cells[row][col + width] == "empty" and 
+                self.cells[row][col + width + 1] == "empty")
 
     def _can_extend_down(self, row: int, col: int, height: int, width: int) -> bool:
-        # Check if we can extend one more row down
-        if row + height >= len(self.cells):
+        # Check if we can extend two more rows down
+        if row + height + 1 >= len(self.cells):
             return False
             
-        # Check if all cells in the next row are empty
-        return all(
-            self.cells[row + height][col + i] == "empty" 
-            for i in range(width)
-        )
+        # Check if all cells in both the next row and the one after that are empty
+        return (all(self.cells[row + height][col + i] == "empty" for i in range(width)) and
+                all(self.cells[row + height + 1][col + i] == "empty" for i in range(width)))
 
     def _expand_node(self, row: int, col: int) -> tuple[int, int]:
+        self.logger.log_step(f"Starting node expansion at ({row}, {col})", self.render())
         # Start with 1x1 node
         width = 1
         height = 1
@@ -256,57 +319,84 @@ class CellGrid:
         # Expand right as much as possible
         while self._can_extend_right(row, col, width):
             width += 1
-            
+        self.logger.log_step(f"Expanded right to width {width}", self.render())
+        
         # Ensure all rows have enough cells for the width
         for i in range(len(self.cells)):
             while len(self.cells[i]) < col + width:
                 self.cells[i].append("empty")
-            
+        
         # Expand down as much as possible
         while self._can_extend_down(row, col, height, width):
             height += 1
-            
+        self.logger.log_step(f"Expanded down to height {height}", self.render())
+        
         # Ensure we have enough rows
         while len(self.cells) < row + height:
             self.cells.append(["empty"] * len(self.cells[0]))
             
+        self.logger.log_step(f"Final expansion size: {width}x{height}", self.render())
         return width, height
 
     def add_node_at_random_empty_cell(self, node_content: str) -> None:
+        self.logger.log_grid_operation(f"Starting to add node with content: {node_content}", self)
+        
         # 1) Find cells with no node neighbors
         valid_cells = self.get_empty_cells_with_no_node_neighbors()
+        self.logger.log_grid_operation(f"Found {len(valid_cells)} valid cells", self)
         
         # 2) If none exist, try to create space
         while not valid_cells:
-            # 50% chance for each operation
+            self.logger.log_grid_operation("No valid cells found, attempting to create space...", self)
             if random.random() < 0.5:
+                self.logger.log_grid_operation("Attempting to add empty row/column...", self)
                 self.add_empty_row_or_column_at_start_or_end_randomly()
             else:
+                self.logger.log_grid_operation("Attempting to clone row/column...", self)
                 self.clone_random_valid_column_or_row()
             valid_cells = self.get_empty_cells_with_no_node_neighbors()
+            self.logger.log_grid_operation(f"After space creation, found {len(valid_cells)} valid cells", self)
         
-        # 4) Choose random valid cell
+        # 3) Choose random valid cell
         row, col = random.choice(valid_cells)
+        self.logger.log_grid_operation(f"Selected cell at position ({row}, {col})", self)
         
-        # 5) Insert the node and expand it
+        # 4) Insert the node and expand it
         width, height = self._expand_node(row, col)
+        self.logger.log_grid_operation(f"Expanded node to width={width}, height={height}", self)
         
-        # Create and store the node
-        node = GridNode(node_content, col, row, width, height)
-        if not hasattr(self, 'nodes'):
-            self.nodes = []
+        # Create and store the node with a letter_id
+        node = GridNode(
+            content=node_content,
+            col=col,
+            row=row,
+            width=width,
+            height=height,
+            letter_id=self._get_next_letter_id()
+        )
         self.nodes.append(node)
+        self.logger.log_grid_operation(f"Created node: {node_content} at ({row}, {col}) with size {width}x{height}", self)
         
         # Fill the grid with the node
         for i in range(row, row + height):
             for j in range(col, col + width):
                 self.cells[i][j] = "node"
-
+        
+        self.logger.log_grid_operation("Final grid after node placement", self)
 
     def purge_redundant_columns(self) -> None:
-        # a column is redundant if the column to its left has EXACTLY the same content (if it exists)
-        # if it redundant in this way, remove it from the grid
-        # reverse traversal so we don't mess up the index
+        # First remove entirely empty columns
+        for col in range(len(self.cells[0]) - 1, -1, -1):  # start from rightmost column
+            if all(row[col] == "empty" for row in self.cells):
+                for row in self.cells:
+                    row.pop(col)
+                # Update node positions
+                for node in self.nodes:
+                    if node.col > col:
+                        node.col -= 1
+                logging.info(f"Removed empty column {col}")
+        
+        # Then remove redundant columns
         for col in range(len(self.cells[0]) - 1, 0, -1):  # start from rightmost column, go left
             # Get the current column and the one to its left
             current_col = [row[col] for row in self.cells]
@@ -316,15 +406,71 @@ class CellGrid:
             if current_col == left_col:
                 for row in self.cells:
                     row.pop(col)
+                # Update node positions
+                for node in self.nodes:
+                    if node.col > col:
+                        node.col -= 1
+                logging.info(f"Removed redundant column {col}")
 
     def purge_redundant_rows(self) -> None:
-        # a row is redundant if the row above it has EXACTLY the same content (if it exists)
-        # if it redundant in this way, remove it from the grid
-        # reverse traversal so we don't mess up the index
+        # First remove entirely empty rows
+        for row in range(len(self.cells) - 1, -1, -1):  # start from bottom row
+            if all(cell == "empty" for cell in self.cells[row]):
+                self.cells.pop(row)
+                # Update node positions
+                for node in self.nodes:
+                    if node.row > row:
+                        node.row -= 1
+                logging.info(f"Removed empty row {row}")
+        
+        # Then remove redundant rows
         for row in range(len(self.cells) - 1, 0, -1):  # start from bottom row, go up
             # If current row is identical to the one above it, remove it
             if self.cells[row] == self.cells[row - 1]:
                 self.cells.pop(row)
+                # Update node positions
+                for node in self.nodes:
+                    if node.row > row:
+                        node.row -= 1
+                logging.info(f"Removed redundant row {row}")
+
+    def _update_node_positions_after_purge(self) -> None:
+        """Update node positions after purging rows/columns.
+        
+        This is needed because when we remove rows/columns, the node positions
+        become invalid. We need to find where each node's cells are in the new grid.
+        """
+        if not hasattr(self, 'nodes'):
+            return
+            
+        # For each node, find its new position by looking for its cells
+        for node in self.nodes:
+            # Find the first occurrence of this node's cells
+            found = False
+            for i in range(len(self.cells)):
+                for j in range(len(self.cells[0])):
+                    # Check if this is the start of our node
+                    if self.cells[i][j] == "node":
+                        # Check if this is the start of our node by looking at width and height
+                        is_node_start = True
+                        for di in range(node.height):
+                            for dj in range(node.width):
+                                if (i + di >= len(self.cells) or 
+                                    j + dj >= len(self.cells[0]) or 
+                                    self.cells[i + di][j + dj] != "node"):
+                                    is_node_start = False
+                                    break
+                            if not is_node_start:
+                                break
+                        
+                        if is_node_start:
+                            # Update node position
+                            node.row = i
+                            node.col = j
+                            found = True
+                            break
+                if found:
+                    break
 
     @staticmethod
     def from_string(grid_str: str) -> "CellGrid":
@@ -397,7 +543,8 @@ class CellGrid:
                 col=min_col,
                 row=min_row,
                 width=max_col - min_col + 1,
-                height=max_row - min_row + 1
+                height=max_row - min_row + 1,
+                letter_id=letter
             )
             grid.nodes.append(node)
         

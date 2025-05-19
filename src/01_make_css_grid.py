@@ -100,7 +100,8 @@ def main():
     grid_path = "data/json-diagrams/godot_instantiating.canvas" 
     # Create a grid from JSON
     grid = make_grid_from_json(grid_path)
-    
+    grid.purge_redundant_columns()
+    grid.purge_redundant_rows()
     # Generate HTML
     html = generate_html(grid)
     

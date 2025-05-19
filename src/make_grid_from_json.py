@@ -55,5 +55,5 @@ if __name__ == "__main__":
     grid.purge_redundant_columns()
     grid.purge_redundant_rows()
     print("```")
-    print(grid.render())
+    print(grid.render_with_named_nodes())
     print("```")
