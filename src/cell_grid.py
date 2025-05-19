@@ -35,7 +35,7 @@ CELL: Dict[str, str] = {
     "edge-__SW": "┐",
     "edge-NE__": "└",
     "edge-N__W": "┘",
-    "node": "□",
+    "node": "x",
     "empty": "·"
 } 
 
@@ -52,7 +52,14 @@ class CellGrid:
         self.cells = rows
 
     def render(self) -> str:
-        return "\n".join([" ".join(row) for row in self.cells])
+        # render according to the CELL dict
+        rendered_cells = []
+        for row in self.cells:
+            rendered_row = []
+            for cell in row:
+                rendered_row.append(CELL[cell])
+            rendered_cells.append("".join(rendered_row))
+        return "\n".join(rendered_cells)
     
 
     @staticmethod
@@ -144,7 +151,11 @@ class CellGrid:
             for dj in [-1, 0, 1]:
                 if di == 0 and dj == 0:
                     continue
-                if self.cells[i + di][j + dj] == "node":
+                # Check if the neighbor coordinates are within bounds
+                ni, nj = i + di, j + dj
+                if (0 <= ni < len(self.cells) and 
+                    0 <= nj < len(self.cells[0]) and 
+                    self.cells[ni][nj] == "node"):
                     return True
         return False
     
@@ -193,13 +204,18 @@ class CellGrid:
         # Check if we can extend one more column to the right
         if col + width >= len(self.cells[0]):
             return False
-        return all(self.cells[row][col + width] == "empty")
+        return self.cells[row][col + width] == "empty"
 
-    def _can_extend_down(self, row: int, col: int, height: int) -> bool:
+    def _can_extend_down(self, row: int, col: int, height: int, width: int) -> bool:
         # Check if we can extend one more row down
         if row + height >= len(self.cells):
             return False
-        return all(self.cells[row + height][col + i] == "empty" for i in range(width))
+        # Check if all cells in the next row are empty and within bounds
+        return all(
+            col + i < len(self.cells[0]) and 
+            self.cells[row + height][col + i] == "empty" 
+            for i in range(width)
+        )
 
     def _expand_node(self, row: int, col: int) -> tuple[int, int]:
         # Start with 1x1 node
@@ -211,7 +227,7 @@ class CellGrid:
             width += 1
             
         # Expand down as much as possible
-        while self._can_extend_down(row, col, height):
+        while self._can_extend_down(row, col, height, width):
             height += 1
             
         return width, height
