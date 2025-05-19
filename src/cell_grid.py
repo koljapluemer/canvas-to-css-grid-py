@@ -83,17 +83,26 @@ class CellGrid:
 
     # add the same column again to the right of its current position
     def clone_column(self, col_index: int):
+        # Validate all rows have the same length
+        row_lengths = [len(row) for row in self.cells]
+        if len(set(row_lengths)) != 1:
+            raise ValueError(f"Grid has inconsistent row lengths: {row_lengths}")
+            
         # Get the column to clone
         column_to_clone = [row[col_index] for row in self.cells]
 
         # Insert the cloned column to the right of the original
         for i, row in enumerate(self.cells):
             row.insert(col_index + 1, column_to_clone[i])
+            
+        # Validate again after modification
+        row_lengths = [len(row) for row in self.cells]
+        if len(set(row_lengths)) != 1:
+            raise ValueError(f"Grid has inconsistent row lengths after cloning: {row_lengths}")
 
     def clone_row(self, row_index: int):
-        # Get the row to clone
-        row_to_clone = self.cells[row_index]
-
+        # Get the row to clone and create a new list
+        row_to_clone = self.cells[row_index].copy()
         # Insert the cloned row below the original
         self.cells.insert(row_index + 1, row_to_clone)
 
@@ -119,11 +128,33 @@ class CellGrid:
             self.clone_row(row_index)
 
     def add_empty_row_at_index(self, index: int) -> None:
-        self.cells.insert(index, ["empty"] * len(self.cells[0]))
-    
+        # Validate all rows have the same length
+        row_lengths = [len(row) for row in self.cells]
+        if len(set(row_lengths)) != 1:
+            raise ValueError(f"Grid has inconsistent row lengths: {row_lengths}")
+            
+        # Create new row with same length as existing rows
+        new_row = ["empty"] * len(self.cells[0])
+        self.cells.insert(index, new_row)
+        
+        # Validate again after modification
+        row_lengths = [len(row) for row in self.cells]
+        if len(set(row_lengths)) != 1:
+            raise ValueError(f"Grid has inconsistent row lengths after adding row: {row_lengths}")
+
     def add_empty_column_at_index(self, index: int) -> None:
+        # Validate all rows have the same length
+        row_lengths = [len(row) for row in self.cells]
+        if len(set(row_lengths)) != 1:
+            raise ValueError(f"Grid has inconsistent row lengths: {row_lengths}")
+            
         for row in self.cells:
             row.insert(index, "empty")
+            
+        # Validate again after modification
+        row_lengths = [len(row) for row in self.cells]
+        if len(set(row_lengths)) != 1:
+            raise ValueError(f"Grid has inconsistent row lengths after adding column: {row_lengths}")
 
     def add_empty_row_or_column_at_start_or_end_randomly(self) -> None:
         will_add_row = random.random() < 0.5
@@ -210,9 +241,9 @@ class CellGrid:
         # Check if we can extend one more row down
         if row + height >= len(self.cells):
             return False
-        # Check if all cells in the next row are empty and within bounds
+            
+        # Check if all cells in the next row are empty
         return all(
-            col + i < len(self.cells[0]) and 
             self.cells[row + height][col + i] == "empty" 
             for i in range(width)
         )
@@ -226,9 +257,18 @@ class CellGrid:
         while self._can_extend_right(row, col, width):
             width += 1
             
+        # Ensure all rows have enough cells for the width
+        for i in range(len(self.cells)):
+            while len(self.cells[i]) < col + width:
+                self.cells[i].append("empty")
+            
         # Expand down as much as possible
         while self._can_extend_down(row, col, height, width):
             height += 1
+            
+        # Ensure we have enough rows
+        while len(self.cells) < row + height:
+            self.cells.append(["empty"] * len(self.cells[0]))
             
         return width, height
 
