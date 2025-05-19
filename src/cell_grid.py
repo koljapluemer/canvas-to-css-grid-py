@@ -61,12 +61,14 @@ class CellGrid:
     edges: list[GridEdge]
     logger: GridLogger
     _next_letter_id: int  # Track next available letter index
+    debug_level: int  # 0 = normal, 1 = verbose, 2 = deep debug
 
     def __init__(self, rows: list[list[str]]):
         self.cells = rows
         self.logger = GridLogger()
         self.nodes = []
         self._next_letter_id = 0
+        self.debug_level = 2  # 0 = normal, 1 = verbose, 2 = deep debug
 
     def _get_next_letter_id(self) -> str:
         """Get next available letter ID, starting with single letters then moving to pairs."""
@@ -399,111 +401,99 @@ class CellGrid:
 
     def purge_redundant_columns(self) -> None:
         # First remove entirely empty columns
-        for col in range(len(self.cells[0]) - 1, -1, -1):  # start from rightmost column
+        for col in range(len(self.cells[0]) - 1, -1, -1):
             if all(row[col] == "empty" for row in self.cells):
                 for row in self.cells:
                     row.pop(col)
-                # Update node positions
                 for node in self.nodes:
                     if node.col > col:
                         node.col -= 1
+                    elif node.col <= col < node.col + node.width:
+                        node.width -= 1
                 self.logger.log_grid_operation("Removed empty column", self)
-        
-        # Then remove redundant columns
-        for col in range(len(self.cells[0]) - 1, 0, -1):  # start from rightmost column, go left
-            # Get the current column and the one to its left
-            current_col = [row[col] for row in self.cells]
-            left_col = [row[col - 1] for row in self.cells]
-            
-            # Check if columns are identical by comparing node letter_ids
-            is_redundant = True
+
+        # Then remove redundant columns (only if exactly identical)
+        for col in range(len(self.cells[0]) - 1, 0, -1):
+            is_identical = True
+            mismatch_info = None
             for row in range(len(self.cells)):
-                # If either cell is empty, they must both be empty
-                if current_col[row] == "empty" and left_col[row] == "empty":
-                    continue
-                # If either cell is a node, they must be the same node
-                if current_col[row] == "node" and left_col[row] == "node":
-                    # Find which node is in each cell
-                    current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
-                    left_node = next((n for n in self.nodes if n.col <= col-1 < n.col + n.width and n.row <= row < n.row + n.height), None)
-                    # Only consider redundant if both cells are part of the same node
-                    if current_node is None or left_node is None or current_node.letter_id != left_node.letter_id:
-                        is_redundant = False
-                        break
-                else:
-                    is_redundant = False
+                def get_cell_id(r, c):
+                    if self.cells[r][c] == "node":
+                        for n in self.nodes:
+                            if n.col <= c < n.col + n.width and n.row <= r < n.row + n.height:
+                                return n.letter_id
+                        return "node"  # fallback, should not happen
+                    return self.cells[r][c]
+                id1 = get_cell_id(row, col)
+                id2 = get_cell_id(row, col-1)
+                if self.debug_level >= 2:
+                    self.logger.log_debug(f"Comparing col {col} vs {col-1} at row {row}: {id1!r} vs {id2!r}")
+                if id1 != id2:
+                    is_identical = False
+                    mismatch_info = (row, col, col-1, id1, id2)
                     break
-            
-            # If they're redundant, remove the current column
-            if is_redundant:
-                # Before removing, verify that we're not accidentally merging different nodes
-                for row in range(len(self.cells)):
-                    if self.cells[row][col] == "node" and self.cells[row][col-1] == "node":
-                        current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
-                        left_node = next((n for n in self.nodes if n.col <= col-1 < n.col + n.width and n.row <= row < n.row + n.height), None)
-                        if current_node is None or left_node is None or current_node.letter_id != left_node.letter_id:
-                            is_redundant = False
-                            break
-                
-                if is_redundant:
-                    for row in self.cells:
-                        row.pop(col)
-                    # Update node positions
-                    for node in self.nodes:
-                        if node.col > col:
-                            node.col -= 1
-                    self.logger.log_grid_operation("Removed redundant column", self)
+            if self.debug_level >= 2:
+                if is_identical:
+                    self.logger.log_debug(f"Column {col} is redundant with column {col-1} (all values identical)")
+                else:
+                    r, c1, c2, v1, v2 = mismatch_info
+                    self.logger.log_debug(f"Column {col} is NOT redundant with column {col-1}: mismatch at row {r}: {v1!r} vs {v2!r}")
+            if is_identical:
+                for row in self.cells:
+                    row.pop(col)
+                for node in self.nodes:
+                    if node.col > col:
+                        node.col -= 1
+                    elif node.col <= col < node.col + node.width:
+                        node.width -= 1
+                self.logger.log_grid_operation("Removed redundant column", self)
 
     def purge_redundant_rows(self) -> None:
         # First remove entirely empty rows
-        for row in range(len(self.cells) - 1, -1, -1):  # start from bottom row
+        for row in range(len(self.cells) - 1, -1, -1):
             if all(cell == "empty" for cell in self.cells[row]):
                 self.cells.pop(row)
-                # Update node positions
                 for node in self.nodes:
                     if node.row > row:
                         node.row -= 1
+                    elif node.row <= row < node.row + node.height:
+                        node.height -= 1
                 self.logger.log_grid_operation("Removed empty row", self)
-        
-        # Then remove redundant rows
-        for row in range(len(self.cells) - 1, 0, -1):  # start from bottom row, go up
-            # Check if rows are identical by comparing node letter_ids
-            is_redundant = True
+
+        # Then remove redundant rows (only if exactly identical)
+        for row in range(len(self.cells) - 1, 0, -1):
+            is_identical = True
+            mismatch_info = None
             for col in range(len(self.cells[0])):
-                # If either cell is empty, they must both be empty
-                if self.cells[row][col] == "empty" and self.cells[row-1][col] == "empty":
-                    continue
-                # If either cell is a node, they must be the same node
-                if self.cells[row][col] == "node" and self.cells[row-1][col] == "node":
-                    # Find which node is in each cell
-                    current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
-                    above_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row-1 < n.row + n.height), None)
-                    # Only consider redundant if both cells are part of the same node
-                    if current_node is None or above_node is None or current_node.letter_id != above_node.letter_id:
-                        is_redundant = False
-                        break
-                else:
-                    is_redundant = False
+                def get_cell_id(r, c):
+                    if self.cells[r][c] == "node":
+                        for n in self.nodes:
+                            if n.col <= c < n.col + n.width and n.row <= r < n.row + n.height:
+                                return n.letter_id
+                        return "node"  # fallback, should not happen
+                    return self.cells[r][c]
+                id1 = get_cell_id(row, col)
+                id2 = get_cell_id(row-1, col)
+                if self.debug_level >= 2:
+                    self.logger.log_debug(f"Comparing row {row} vs {row-1} at col {col}: {id1!r} vs {id2!r}")
+                if id1 != id2:
+                    is_identical = False
+                    mismatch_info = (col, row, row-1, id1, id2)
                     break
-            
-            # If they're redundant, remove the current row
-            if is_redundant:
-                # Before removing, verify that we're not accidentally merging different nodes
-                for col in range(len(self.cells[0])):
-                    if self.cells[row][col] == "node" and self.cells[row-1][col] == "node":
-                        current_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row < n.row + n.height), None)
-                        above_node = next((n for n in self.nodes if n.col <= col < n.col + n.width and n.row <= row-1 < n.row + n.height), None)
-                        if current_node is None or above_node is None or current_node.letter_id != above_node.letter_id:
-                            is_redundant = False
-                            break
-                
-                if is_redundant:
-                    self.cells.pop(row)
-                    # Update node positions
-                    for node in self.nodes:
-                        if node.row > row:
-                            node.row -= 1
-                    self.logger.log_grid_operation("Removed redundant row", self)
+            if self.debug_level >= 2:
+                if is_identical:
+                    self.logger.log_debug(f"Row {row} is redundant with row {row-1} (all values identical)")
+                else:
+                    c, r1, r2, v1, v2 = mismatch_info
+                    self.logger.log_debug(f"Row {row} is NOT redundant with row {row-1}: mismatch at col {c}: {v1!r} vs {v2!r}")
+            if is_identical:
+                self.cells.pop(row)
+                for node in self.nodes:
+                    if node.row > row:
+                        node.row -= 1
+                    elif node.row <= row < node.row + node.height:
+                        node.height -= 1
+                self.logger.log_grid_operation("Removed redundant row", self)
 
     def _update_node_positions_after_purge(self) -> None:
         """Update node positions after purging rows/columns.

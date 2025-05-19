@@ -27,29 +27,20 @@ def sanitize_area_name(content: str) -> str:
     return name
 
 def grid_to_css_grid(grid: CellGrid) -> str:
-    """Convert a CellGrid to CSS grid-template-areas string."""
-    # Create a 2D grid of area names
-    areas = [["." for _ in range(len(grid.cells[0]))] for _ in range(len(grid.cells))]
-    
-    # Fill in the areas based on nodes
-    for node in grid.nodes:
-        # Use the node's letter_id directly
-        area_name = node.letter_id
-        # Ensure we have enough rows and columns
-        while len(areas) < node.row + node.height:
-            areas.append(["." for _ in range(len(areas[0]))])
-        for row in areas:
-            while len(row) < node.col + node.width:
-                row.append(".")
-        # Fill in the node's area
-        for i in range(node.row, node.row + node.height):
-            for j in range(node.col, node.col + node.width):
-                if 0 <= i < len(areas) and 0 <= j < len(areas[i]):
-                    areas[i][j] = area_name
-    
-    # Convert to CSS grid-template-areas format
-    # Each row should be on its own line and properly quoted
-    area_rows = [f'"{row}"' for row in [" ".join(row) for row in areas]]
+    """Convert a CellGrid to CSS grid-template-areas string, matching the visual grid."""
+    def get_letter_id_for_cell(i, j):
+        if grid.cells[i][j] == "node":
+            for n in grid.nodes:
+                if n.col <= j < n.col + n.width and n.row <= i < n.row + n.height:
+                    return n.letter_id
+        return "."  # treat all non-node as empty for CSS
+
+    area_rows = []
+    for i, row in enumerate(grid.cells):
+        area_row = []
+        for j, cell in enumerate(row):
+            area_row.append(get_letter_id_for_cell(i, j))
+        area_rows.append(f'"{' '.join(area_row)}"')
     return "\n            ".join(area_rows)
 
 def generate_html(grid: CellGrid) -> str:

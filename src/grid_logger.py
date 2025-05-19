@@ -31,3 +31,6 @@ class GridLogger:
     def log_grid_operation(self, message: str, grid: 'CellGrid') -> None:
         """Log a grid operation with the current state of the grid."""
         self.log_step(message, grid.render_with_named_nodes()) 
+
+    def log_debug(self, message: str) -> None:
+        logging.info(f"[DEBUG] {message}") 
