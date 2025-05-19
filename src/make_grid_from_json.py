@@ -50,7 +50,7 @@ def make_grid_from_json(json_path: str) -> CellGrid:
 
 if __name__ == "__main__":
     # Example usage
-    json_path = "data/json-diagrams/simple.canvas"
+    json_path = "data/json-diagrams/godot_instantiating.canvas"
     grid = make_grid_from_json(json_path)
     print("```")
     print(grid.render())
