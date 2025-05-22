@@ -40,7 +40,26 @@ class Grid:
 
     # everything that fulfills get_is_cell_empty_and_all_neighbors_empty_or_out_of_bounds_at()
     def get_all_valid_node_placement_cells(self) -> list[Cell]:
-        return []
+        valid_cells = []
+        for row in range(self.height):
+            for col in range(self.width):
+                if not self.is_cell_empty(row, col):
+                    continue
+                # Check all 8 neighbors
+                all_neighbors_empty_or_oob = True
+                for dr in [-1, 0, 1]:
+                    for dc in [-1, 0, 1]:
+                        if dr == 0 and dc == 0:
+                            continue
+                        nr, nc = row + dr, col + dc
+                        if not self.is_cell_empty_or_out_of_bounds(nr, nc):
+                            all_neighbors_empty_or_oob = False
+                            break
+                    if not all_neighbors_empty_or_oob:
+                        break
+                if all_neighbors_empty_or_oob:
+                    valid_cells.append(self.cells[row][col])
+        return valid_cells
     
     def is_cell_empty(self, row: int, col: int) -> bool:
         if not (0 <= row < self.height and 0 <= col < self.width):
