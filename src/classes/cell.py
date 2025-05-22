@@ -1,5 +1,3 @@
 class Cell:
-    def __init__(self, row, col):
-        self.row = row
-        self.col = col
-        self.value = "x"
+    def __init__(self):
+        self.value = "·"  # Default empty cell value
