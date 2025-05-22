@@ -18,5 +18,21 @@ class Grid:
         # Create a new grid with these dimensions
         grid = Grid(width, height)
         
+        # Set cell values from the text
+        for row, line in enumerate(lines):
+            values = line.split()
+            for col, value in enumerate(values):
+                grid.cells[row][col].value = value
+        
         return grid
+    
+    def export_to_txt(self):
+        # Convert each row of cells to a space-separated string
+        lines = []
+        for row in self.cells:
+            line = ' '.join(cell.value for cell in row)
+            lines.append(line)
+        
+        # Join all lines with newlines
+        return '\n'.join(lines)
     
