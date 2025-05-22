@@ -38,20 +38,24 @@ class Grid:
         return '\n'.join(lines)
     
 
-    def is_cell_empty_at(self, coord: Coordinate) -> bool:
-        return False
-    
-    def is_cell_empty_or_out_of_bounds_at(self, coord: Coordinate) -> bool:
-        return False
-    
-    # including diagonal neighbors!
-    def is_cell_empty_and_all_neighbors_empty_or_out_of_bounds_at(self, coord: Coordinate) -> bool:
-        return False
-
-    def get_all_empty_cells(self) -> list[Cell]:
-        return []
-    
     # everything that fulfills get_is_cell_empty_and_all_neighbors_empty_or_out_of_bounds_at()
     def get_all_valid_node_placement_cells(self) -> list[Cell]:
         return []
     
+    def is_cell_empty(self, row: int, col: int) -> bool:
+        if not (0 <= row < self.height and 0 <= col < self.width):
+            return False
+        return self.cells[row][col].value == "·"
+    
+    def is_cell_empty_or_out_of_bounds(self, row: int, col: int) -> bool:
+        if not (0 <= row < self.height and 0 <= col < self.width):
+            return True
+        return self.cells[row][col].value == "·"
+    
+    def get_all_empty_cells(self) -> list[tuple[int, int]]:
+        empty_cells = []
+        for row in range(self.height):
+            for col in range(self.width):
+                if self.cells[row][col].value == "·":
+                    empty_cells.append((row, col))
+        return empty_cells
