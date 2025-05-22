@@ -1,3 +1,4 @@
+from src.classes.grid import Grid
 from src.classes.node import Node
 from src.classes.edge import Edge
 from src.classes.coordinate import Coordinate
@@ -53,3 +54,7 @@ class ObjectManager:
             for edge in self.edges
         ]
         return {'nodes': nodes_json, 'edges': edges_json}
+
+    def make_grid(self) -> Grid:
+        grid = Grid(width=self.width, height=self.height)
+        return grid
