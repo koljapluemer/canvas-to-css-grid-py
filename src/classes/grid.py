@@ -1,3 +1,4 @@
+from classes.coordinate import Coordinate
 from src.classes.cell import Cell
 
 class Grid:
@@ -35,4 +36,22 @@ class Grid:
         
         # Join all lines with newlines
         return '\n'.join(lines)
+    
+
+    def is_cell_empty_at(self, coord: Coordinate) -> bool:
+        return False
+    
+    def is_cell_empty_or_out_of_bounds_at(self, coord: Coordinate) -> bool:
+        return False
+    
+    # including diagonal neighbors!
+    def is_cell_empty_and_all_neighbors_empty_or_out_of_bounds_at(self, coord: Coordinate) -> bool:
+        return False
+
+    def get_all_empty_cells(self) -> list[Cell]:
+        return []
+    
+    # everything that fulfills get_is_cell_empty_and_all_neighbors_empty_or_out_of_bounds_at()
+    def get_all_valid_node_placement_cells(self) -> list[Cell]:
+        return []
     

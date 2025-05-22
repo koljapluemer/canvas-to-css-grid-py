@@ -7,7 +7,7 @@ def test_grid_creation_from_json():
     # Get the paths to the test files
     current_dir = os.path.dirname(os.path.abspath(__file__))
     json_path = os.path.join(current_dir, 'simplegrid.json')
-    txt_path = os.path.join(os.path.dirname(current_dir), '002_standalone_grid', 'simplegrid.txt')
+    txt_path = os.path.join(current_dir, 'simplegrid.txt')
     
     # Load the JSON file
     with open(json_path, 'r') as f:
