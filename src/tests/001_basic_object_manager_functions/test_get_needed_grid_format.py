@@ -5,7 +5,8 @@ from src.classes.object_manager import ObjectManager
 def test_get_needed_grid_format():
     # Get the path to the test JSON file
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(current_dir, '5_by_6.json')
+    data_dir = os.path.join(os.path.dirname(current_dir), 'data')
+    json_path = os.path.join(data_dir, 'simplegrid.json')
 
     # Load the JSON file
     with open(json_path, 'r') as f:

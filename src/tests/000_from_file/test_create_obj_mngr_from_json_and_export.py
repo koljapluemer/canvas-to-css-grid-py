@@ -7,7 +7,8 @@ from src.classes.coordinate import Coordinate
 def test_create_from_json_and_export():
     # Get the path to the test JSON file
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(current_dir, 'simplegrid.json')
+    data_dir = os.path.join(os.path.dirname(current_dir), 'data')
+    json_path = os.path.join(data_dir, 'simplegrid.json')
     
     # Load the original JSON file
     with open(json_path, 'r') as f:
