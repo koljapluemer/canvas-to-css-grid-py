@@ -17,4 +17,4 @@ def test_get_needed_grid_format():
     # Get needed grid format
     needed_format = obj_manager.create_needed_grid_format()
 
-    assert needed_format == [5, 6], f"Expected [5, 6], got {needed_format}"
+    assert needed_format == (5, 6), f"Expected (5, 6), got {needed_format}"
