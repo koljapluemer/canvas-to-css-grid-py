@@ -32,7 +32,18 @@ class ObjectManager:
         self.edges.append(edge)
     
     def create_needed_grid_format(self) -> [int, int]:
-        return [0, 0]
+        max_row = 0
+        max_col = 0
+        # Check nodes
+        for node in self.nodes:
+            max_row = max(max_row, node.row + node.height)
+            max_col = max(max_col, node.col + node.width)
+        # Check edge cells
+        for edge in self.edges:
+            for cell in edge.cells:
+                max_row = max(max_row, cell.row + 1)
+                max_col = max(max_col, cell.col + 1)
+        return [max_row, max_col]
 
     def export_to_JSON(self):
         nodes_json = [
