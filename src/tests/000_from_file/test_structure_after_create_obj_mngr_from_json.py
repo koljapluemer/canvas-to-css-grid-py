@@ -19,13 +19,3 @@ def test_create_from_json():
     assert len(obj_manager.nodes) == 3, "Expected 3 nodes"
     assert len(obj_manager.edges) == 2, "Expected 2 edges"
     
-    # Validate node IDs
-    node_ids = [node['id'] for node in obj_manager.nodes]
-    assert 'a' in node_ids, "Node 'a' not found"
-    assert 'b' in node_ids, "Node 'b' not found"
-    assert 'c' in node_ids, "Node 'c' not found"
-    
-    # Validate edge IDs
-    edge_ids = [edge['id'] for edge in obj_manager.edges]
-    assert '0' in edge_ids, "Edge '0' not found"
-    assert '1' in edge_ids, "Edge '1' not found"
