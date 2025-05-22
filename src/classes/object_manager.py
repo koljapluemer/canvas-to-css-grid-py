@@ -1,6 +1,7 @@
 class ObjectManager:
-    nodes = []
-    edges = []
+    def __init__(self):
+        self.nodes = []
+        self.edges = []
 
     @staticmethod
     def create_from_JSON(json_data):
@@ -10,10 +11,10 @@ class ObjectManager:
         return obj_manager
     
     def add_node(self, node):
-        return 
+        self.nodes.append(node)
     
     def add_edge(self, edge):
-        return
+        self.edges.append(edge)
     
     def export_to_JSON(self):
         return {}
