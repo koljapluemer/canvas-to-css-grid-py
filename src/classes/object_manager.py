@@ -70,5 +70,15 @@ class ObjectManager:
         return {'nodes': nodes_json, 'edges': edges_json}
 
     def make_grid(self) -> Grid:
-        grid = Grid(width=self.width, height=self.height)
+        height, width = self.create_needed_grid_format()
+        grid = Grid(width=width, height=height)
+        # Fill nodes
+        for node in self.nodes:
+            for r in range(node.row, node.row + node.height):
+                for c in range(node.col, node.col + node.width):
+                    grid.cells[r][c].value = node.id
+        # Fill edges
+        for edge in self.edges:
+            for cell in edge.cells:
+                grid.cells[cell.row][cell.col].value = edge.id
         return grid
