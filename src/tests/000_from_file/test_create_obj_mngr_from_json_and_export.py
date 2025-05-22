@@ -2,6 +2,7 @@ import json
 import os
 import pytest
 from src.classes.object_manager import ObjectManager
+from src.classes.coordinate import Coordinate
 
 def test_create_from_json_and_export():
     # Get the path to the test JSON file
@@ -18,5 +19,10 @@ def test_create_from_json_and_export():
     # Export back to JSON
     exported_json = obj_manager.export_to_JSON()
     
+    # Convert coordinates in original JSON to match exported format
+    processed_original = original_json.copy()
+    for edge in processed_original['edges']:
+        edge['cells'] = [{'row': cell[0], 'col': cell[1]} for cell in edge['cells']]
+    
     # Compare the original and exported JSON
-    assert exported_json == original_json, "Exported JSON does not match original JSON"
+    assert exported_json == processed_original, "Exported JSON does not match original JSON"

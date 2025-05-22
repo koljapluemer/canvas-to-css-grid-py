@@ -9,5 +9,11 @@ class ObjectManager:
         obj_manager.edges = json_data.get('edges', [])
         return obj_manager
     
+    def add_node(self, node):
+        return 
+    
+    def add_edge(self, edge):
+        return
+    
     def export_to_JSON(self):
         return {}
