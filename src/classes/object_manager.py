@@ -31,6 +31,9 @@ class ObjectManager:
     def add_edge(self, edge):
         self.edges.append(edge)
     
+    def create_needed_grid_format(self) -> [int, int]:
+        return [0, 0]
+
     def export_to_JSON(self):
         nodes_json = [
             {
