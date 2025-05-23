@@ -25,14 +25,14 @@ def test_add_edge():
     ]
     
     # Create test attachments
-    sender_attachment = Attachment(nodeId="a", hasArrow=False, nodeInDirection="W")
-    receiver_attachment = Attachment(nodeId="b", hasArrow=True, nodeInDirection="E")
+    sender_attachment = Attachment(node_id="a", has_arrow=False, node_in_direction="W")
+    receiver_attachment = Attachment(node_id="b", has_arrow=True, node_in_direction="E")
     
     # Create a test edge
     edge = Edge(
         id="test_edge",
-        senderAttachment=sender_attachment,
-        receiverAttachment=receiver_attachment,
+        sender_attachment=sender_attachment,
+        receiver_attachment=receiver_attachment,
         cells=cells
     )
     

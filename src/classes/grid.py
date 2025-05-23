@@ -1,12 +1,12 @@
 from classes.coordinate import Coordinate
-from src.classes.cell import Cell
+from src.classes.cell import Cell, CellType
 import random
 
 class Grid:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.cells = [[Cell(row, col) for col in range(width)] for row in range(height)]
+        self.cells = [[Cell(row, col, CellType.EMPTY, None, None, False, False, value="·") for col in range(width)] for row in range(height)]
 
     @staticmethod
     def create_from_txt(txt_data):
@@ -24,7 +24,12 @@ class Grid:
         for row, line in enumerate(lines):
             values = line.split()
             for col, value in enumerate(values):
-                grid.cells[row][col].value = value
+                if value == "·":
+                    grid.cells[row][col] = Cell(row, col, CellType.EMPTY, None, None, False, False, value="·", occupant_id=None)
+                elif value.isalpha():
+                    grid.cells[row][col] = Cell(row, col, CellType.NODE, None, None, False, False, value="·", occupant_id=value)
+                else:
+                    grid.cells[row][col] = Cell(row, col, CellType.EDGE, None, None, False, False, value="·", occupant_id=value)
         
         return grid
     
@@ -32,12 +37,17 @@ class Grid:
         # Convert each row of cells to a space-separated string
         lines = []
         for row in self.cells:
-            line = ' '.join(cell.value for cell in row)
+            line = ' '.join(cell.render_txt() for cell in row)
             lines.append(line)
-        
-        # Join all lines with newlines
         return '\n'.join(lines)
     
+    def render_to_flow_txt(self):
+        # Render each cell using its render_flow method
+        lines = []
+        for row in self.cells:
+            line = ' '.join(cell.render_flow() for cell in row)
+            lines.append(line)
+        return '\n'.join(lines)
 
     # everything that fulfills get_is_cell_empty_and_all_neighbors_empty_or_out_of_bounds_at()
     def get_all_valid_node_placement_cells(self) -> list[Cell]:
@@ -89,12 +99,12 @@ class Grid:
 
     def add_row_to_end(self):
         # Create new row of empty cells
-        new_row = [Cell(self.height, col) for col in range(self.width)]
+        new_row = [Cell(self.height, col, CellType.EMPTY, None, None, False, False, value="·") for col in range(self.width)]
         self.cells.append(new_row)
         self.height += 1
 
     def add_col_to_end(self):
         # Add a new empty cell to each row
         for row in range(self.height):
-            self.cells[row].append(Cell(row, self.width))
+            self.cells[row].append(Cell(row, self.width, CellType.EMPTY, None, None, False, False, value="·"))
         self.width += 1

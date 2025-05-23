@@ -2,6 +2,7 @@ from src.classes.grid import Grid
 from src.classes.node import Node
 from src.classes.edge import Edge, Attachment
 from src.classes.coordinate import Coordinate
+from src.classes.cell import Cell, CellType, Direction
 
 class ObjectManager:
     def __init__(self):
@@ -16,10 +17,20 @@ class ObjectManager:
             obj_manager.add_node(node)
         for edge_data in json_data.get('edges', []):
             cells = [Coordinate(row=cell[0], col=cell[1]) for cell in edge_data['cells']]
+            sender_attachment = Attachment(
+                node_id=edge_data['senderAttachment']['nodeId'],
+                has_arrow=edge_data['senderAttachment']['hasArrow'],
+                node_in_direction=edge_data['senderAttachment']['nodeInDirection']
+            )
+            receiver_attachment = Attachment(
+                node_id=edge_data['receiverAttachment']['nodeId'],
+                has_arrow=edge_data['receiverAttachment']['hasArrow'],
+                node_in_direction=edge_data['receiverAttachment']['nodeInDirection']
+            )
             edge = Edge(
                 id=edge_data['id'],
-                senderAttachment=Attachment(**edge_data['senderAttachment']),
-                receiverAttachment=Attachment(**edge_data['receiverAttachment']),
+                sender_attachment=sender_attachment,
+                receiver_attachment=receiver_attachment,
                 cells=cells
             )
             obj_manager.add_edge(edge)
@@ -60,14 +71,14 @@ class ObjectManager:
             {
                 'id': edge.id,
                 'senderAttachment': {
-                    'nodeId': edge.senderAttachment.nodeId,
-                    'hasArrow': edge.senderAttachment.hasArrow,
-                    'nodeInDirection': edge.senderAttachment.nodeInDirection
+                    'nodeId': edge.sender_attachment.node_id,
+                    'hasArrow': edge.sender_attachment.has_arrow,
+                    'nodeInDirection': edge.sender_attachment.node_in_direction
                 },
                 'receiverAttachment': {
-                    'nodeId': edge.receiverAttachment.nodeId,
-                    'hasArrow': edge.receiverAttachment.hasArrow,
-                    'nodeInDirection': edge.receiverAttachment.nodeInDirection
+                    'nodeId': edge.receiver_attachment.node_id,
+                    'hasArrow': edge.receiver_attachment.has_arrow,
+                    'nodeInDirection': edge.receiver_attachment.node_in_direction
                 },
                 'cells': [
                     {'row': cell.row, 'col': cell.col} for cell in edge.cells
@@ -84,12 +95,49 @@ class ObjectManager:
         for node in self.nodes:
             for r in range(node.row, node.row + node.height):
                 for c in range(node.col, node.col + node.width):
-                    grid.cells[r][c].value = node.id
+                    cell = Cell(r, c, CellType.NODE, None, None, False, False, value="·", occupant_id=node.id)
+                    grid.cells[r][c] = cell
         # Fill edges
         for edge in self.edges:
-            for cell in edge.cells:
-                grid.cells[cell.row][cell.col].value = edge.id
+            for i, cell in enumerate(edge.cells):
+                r, c = cell.row, cell.col
+                if i == 0:
+                    connects_to_previous_in_direction = Direction[edge.sender_attachment.node_in_direction]
+                    has_arrow_to_previous = edge.sender_attachment.has_arrow
+                    connects_to_next_in_direction = None
+                    has_arrow_to_next = False
+                elif i == len(edge.cells) - 1:
+                    connects_to_previous_in_direction = None
+                    has_arrow_to_previous = False
+                    connects_to_next_in_direction = Direction[edge.receiver_attachment.node_in_direction]
+                    has_arrow_to_next = edge.receiver_attachment.has_arrow
+                else:
+                    prev_cell = edge.cells[i - 1]
+                    next_cell = edge.cells[i + 1]
+                    connects_to_previous_in_direction = self._compute_direction(r, c, prev_cell.row, prev_cell.col)
+                    connects_to_next_in_direction = self._compute_direction(r, c, next_cell.row, next_cell.col)
+                    has_arrow_to_previous = False
+                    has_arrow_to_next = False
+                edge_cell = Cell(
+                    r, c, CellType.EDGE,
+                    connects_to_previous_in_direction, connects_to_next_in_direction,
+                    has_arrow_to_previous, has_arrow_to_next,
+                    value="·", occupant_id=str(edge.id)
+                )
+                grid.cells[r][c] = edge_cell
         return grid
+
+    def _compute_direction(self, r1: int, c1: int, r2: int, c2: int) -> Direction:
+        if r1 < r2:
+            return Direction.S
+        elif r1 > r2:
+            return Direction.N
+        elif c1 < c2:
+            return Direction.E
+        elif c1 > c2:
+            return Direction.W
+        else:
+            raise ValueError("Cells are the same")
 
     def add_node_at_coordinate(self, id, row, col):
         from src.classes.node import Node
