@@ -19,6 +19,8 @@ Python-based attempts to convert Open Canvas Flowcharts to neat HTML/CSS with CS
 2. Use the data in `src/tests/data` to create an `ObjectManager` and or `Grid`, and make a red test for the function to be implemented
 3. Green the test 
 
+Tip: Files in `src/tests/017_` (...) are validated to represent valid structures, and to be equivalent to one another.
+
 ### `_old`
 
 `src/make_css_grid.py` actually produces decent output. Run and iterate.
