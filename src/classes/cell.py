@@ -79,6 +79,12 @@ class Cell:
                 # N + S: │
                 elif self.connects_to_previous_in_direction == Direction.N and self.connects_to_next_in_direction == Direction.S:
                     return "│"
+                # W + E: —
+                elif self.connects_to_previous_in_direction == Direction.W and self.connects_to_next_in_direction == Direction.E:
+                    return "─"
+                # S + N: │
+                elif self.connects_to_previous_in_direction == Direction.S and self.connects_to_next_in_direction == Direction.N:
+                    return "│"
                 # Elbow connectors
                 # N
                 elif self.connects_to_previous_in_direction == Direction.N and self.connects_to_next_in_direction == Direction.E:
