@@ -23,6 +23,9 @@ class Cell:
         self.has_arrow_to_previous = has_arrow_to_previous
         self.has_arrow_to_next = has_arrow_to_next
 
+    def is_empty(self) -> bool:
+        return self.cell_type == CellType.EMPTY
+
     def render_txt(self) -> str:
         if self.cell_type == CellType.EMPTY:
             return "·"

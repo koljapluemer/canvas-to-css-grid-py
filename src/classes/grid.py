@@ -75,18 +75,18 @@ class Grid:
     def is_cell_empty(self, row: int, col: int) -> bool:
         if not (0 <= row < self.height and 0 <= col < self.width):
             return False
-        return self.cells[row][col].value == "·"
+        return self.cells[row][col].is_empty()
     
     def is_cell_empty_or_out_of_bounds(self, row: int, col: int) -> bool:
         if not (0 <= row < self.height and 0 <= col < self.width):
             return True
-        return self.cells[row][col].value == "·"
+        return self.cells[row][col].is_empty()
     
     def get_all_empty_cells(self) -> list[tuple[int, int]]:
         empty_cells = []
         for row in range(self.height):
             for col in range(self.width):
-                if self.cells[row][col].value == "·":
+                if self.cells[row][col].is_empty():
                     empty_cells.append((row, col))
         return empty_cells
 
