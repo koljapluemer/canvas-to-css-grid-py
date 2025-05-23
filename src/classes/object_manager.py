@@ -209,37 +209,25 @@ class ObjectManager:
         2. Have another empty cell in the same direction for "breathing space"
         """
         grid = self.make_grid()
-        valid_points = set()
-        # North edge
-        r = node.row - 1
-        if r >= 0:
-            for c in range(node.col, node.col + node.width):
-                if grid.is_cell_empty(r, c):
-                    breathing_r = r - 1
-                    if breathing_r >= 0 and grid.is_cell_empty(breathing_r, c):
-                        valid_points.add((r, c))
-        # South edge
-        r = node.row + node.height
-        if r < grid.height:
-            for c in range(node.col, node.col + node.width):
-                if grid.is_cell_empty(r, c):
-                    breathing_r = r + 1
-                    if breathing_r < grid.height and grid.is_cell_empty(breathing_r, c):
-                        valid_points.add((r, c))
-        # West edge
-        c = node.col - 1
-        if c >= 0:
-            for r in range(node.row, node.row + node.height):
-                if grid.is_cell_empty(r, c):
-                    breathing_c = c - 1
-                    if breathing_c >= 0 and grid.is_cell_empty(r, breathing_c):
-                        valid_points.add((r, c))
-        # East edge
-        c = node.col + node.width
-        if c < grid.width:
-            for r in range(node.row, node.row + node.height):
-                if grid.is_cell_empty(r, c):
-                    breathing_c = c + 1
-                    if breathing_c < grid.width and grid.is_cell_empty(r, breathing_c):
-                        valid_points.add((r, c))
-        return list(valid_points)
+        valid_points = []
+        for (row, col) in self.get_neighboring_cell_coords(node):
+            # Only consider in-bounds
+            if not (0 <= row < grid.height and 0 <= col < grid.width):
+                continue
+            if not grid.is_cell_empty(row, col):
+                continue
+            # Determine direction from node to this cell
+            if row < node.row:  # North
+                breathing_row, breathing_col = row - 1, col
+            elif row >= node.row + node.height:  # South
+                breathing_row, breathing_col = row + 1, col
+            elif col < node.col:  # West
+                breathing_row, breathing_col = row, col - 1
+            elif col >= node.col + node.width:  # East
+                breathing_row, breathing_col = row, col + 1
+            else:
+                continue  # Should not happen
+            # Check breathing space
+            if 0 <= breathing_row < grid.height and 0 <= breathing_col < grid.width and grid.is_cell_empty(breathing_row, breathing_col):
+                valid_points.append((row, col))
+        return valid_points
