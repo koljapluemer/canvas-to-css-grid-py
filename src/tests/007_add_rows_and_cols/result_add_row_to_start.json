@@ -1,0 +1,68 @@
+{
+    "nodes": [
+        {
+            "id": "a",
+            "row": 1,
+            "col": 0,
+            "width": 2,
+            "height": 2
+        },
+        {
+            "id": "b",
+            "row": 1,
+            "col": 3,
+            "width": 3,
+            "height": 1
+        },
+        {
+            "id": "c",
+            "row": 5,
+            "col": 3,
+            "width": 2,
+            "height": 1
+        }
+    ],
+    "edges": [
+        {
+            "id": "0",
+            "cells": [
+                [3, 1],
+                [4, 1],
+                [4, 2],
+                [4, 3]
+            ],
+            "senderAttachment": {
+                "nodeId": "a",
+                "hasArrow": false,
+                "nodeInDirection": "W"
+            },
+            "receiverAttachment": {
+                "nodeId": "c",
+                "hasArrow": true,
+                "nodeInDirection": "S"
+            }
+        },
+        {
+            "id": "1",
+            "cells": [
+                [5, 5],
+                [4, 5],
+                [3, 5],
+                [2, 5],
+                [2, 4],
+                [2, 3],
+                [2, 2]
+            ],
+            "senderAttachment": {
+                "nodeId": "c",
+                "hasArrow": true,
+                "nodeInDirection": "W"
+            },
+            "receiverAttachment": {
+                "nodeId": "a",
+                "hasArrow": true,
+                "nodeInDirection": "W"
+            }
+        }
+    ]
+}
