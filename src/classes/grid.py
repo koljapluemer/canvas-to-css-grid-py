@@ -86,3 +86,15 @@ class Grid:
             return None
         cell = random.choice(valid_cells)
         return (cell.row, cell.col)
+
+    def add_row_to_end(self):
+        # Create new row of empty cells
+        new_row = [Cell(self.height, col) for col in range(self.width)]
+        self.cells.append(new_row)
+        self.height += 1
+
+    def add_col_to_end(self):
+        # Add a new empty cell to each row
+        for row in range(self.height):
+            self.cells[row].append(Cell(row, self.width))
+        self.width += 1
