@@ -81,7 +81,7 @@ class ObjectManager:
                     'nodeInDirection': edge.receiver_attachment.node_in_direction
                 },
                 'cells': [
-                    {'row': cell.row, 'col': cell.col} for cell in edge.cells
+                    [cell.row, cell.col] for cell in edge.cells
                 ]
             }
             for edge in self.edges
@@ -150,3 +150,13 @@ class ObjectManager:
             raise ValueError("No valid placement for new node")
         row, col = coord
         self.add_node_at_coordinate(id, row, col)
+
+    def add_row_to_start(self):
+        # Increment row of all nodes
+        for node in self.nodes:
+            node.row += 1
+        
+        # Increment row of all edge cells
+        for edge in self.edges:
+            for cell in edge.cells:
+                cell.row += 1

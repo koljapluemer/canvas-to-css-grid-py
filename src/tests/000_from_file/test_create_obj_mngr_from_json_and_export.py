@@ -22,8 +22,7 @@ def test_create_from_json_and_export():
     
     # Convert coordinates in original JSON to match exported format
     processed_original = original_json.copy()
-    for edge in processed_original['edges']:
-        edge['cells'] = [{'row': cell[0], 'col': cell[1]} for cell in edge['cells']]
+    # No conversion needed, just compare directly
     
     # Compare the original and exported JSON
     assert exported_json == processed_original, "Exported JSON does not match original JSON"

@@ -34,11 +34,11 @@ class Grid:
         return grid
     
     def export_to_txt(self):
-        # Convert each row of cells to a space-separated string
+        # Convert each row of cells to a space-separated string, no trailing spaces
         lines = []
         for row in self.cells:
             line = ' '.join(cell.render_txt() for cell in row)
-            lines.append(line)
+            lines.append(line.rstrip())
         return '\n'.join(lines)
     
     def render_to_flow_txt(self):
