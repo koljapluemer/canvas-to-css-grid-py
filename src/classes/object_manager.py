@@ -160,3 +160,13 @@ class ObjectManager:
         for edge in self.edges:
             for cell in edge.cells:
                 cell.row += 1
+
+    def add_col_to_start(self):
+        # Increment column of all nodes
+        for node in self.nodes:
+            node.col += 1
+        
+        # Increment column of all edge cells
+        for edge in self.edges:
+            for cell in edge.cells:
+                cell.col += 1
