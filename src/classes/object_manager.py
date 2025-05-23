@@ -177,3 +177,26 @@ class ObjectManager:
         for edge in self.edges:
             for cell in edge.cells:
                 cell.col += 1
+
+    def get_neighboring_cell_coords(self, node) -> list[tuple[int, int]]:
+        """Return all orthogonal (N, S, E, W) coordinates around the node (may be out of bounds)."""
+        coords = set()
+        # Top (N)
+        for c in range(node.col, node.col + node.width):
+            coords.add((node.row - 1, c))
+        # Bottom (S)
+        for c in range(node.col, node.col + node.width):
+            coords.add((node.row + node.height, c))
+        # Left (W)
+        for r in range(node.row, node.row + node.height):
+            coords.add((r, node.col - 1))
+        # Right (E)
+        for r in range(node.row, node.row + node.height):
+            coords.add((r, node.col + node.width))
+        return list(coords)
+
+    def find_all_empty_neighbors(self, node) -> list[tuple[int, int]]:
+        """Find all empty cells that are direct neighbors of a node."""
+        grid = self.make_grid()
+        neighbors = self.get_neighboring_cell_coords(node)
+        return [coord for coord in neighbors if 0 <= coord[0] < grid.height and 0 <= coord[1] < grid.width and grid.is_cell_empty(coord[0], coord[1])]
