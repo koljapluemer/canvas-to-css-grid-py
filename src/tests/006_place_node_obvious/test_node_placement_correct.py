@@ -11,6 +11,7 @@ def test_node_placement_correct():
     json_path = os.path.join(data_dir, 'one-spot-for-adding-node.json')
     txt_path = os.path.join(data_dir, 'one-spot-for-adding-node.txt')
     expected_after_path = os.path.join(current_dir, 'node-added.txt')
+    expected_json_path = os.path.join(current_dir, 'node-added.json')
     
     # Load initial state from JSON
     with open(json_path, 'r') as f:
@@ -35,3 +36,9 @@ def test_node_placement_correct():
         expected_final = f.read().strip()
     actual_final = grid.export_to_txt()
     assert actual_final == expected_final, "Final grid state does not match node-added.txt"
+    
+    # Verify JSON export matches node-added.json
+    with open(expected_json_path, 'r') as f:
+        expected_json = json.load(f)
+    actual_json = obj_manager.export_to_JSON()
+    assert actual_json == expected_json, "Exported JSON does not match node-added.json"
