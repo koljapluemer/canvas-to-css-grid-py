@@ -1,6 +1,6 @@
 import pytest
 from src.classes.object_manager import ObjectManager
-from src.classes.edge import Edge
+from src.classes.edge import Edge, Attachment
 from src.classes.node import Node
 from src.classes.coordinate import Coordinate
 
@@ -24,11 +24,15 @@ def test_add_edge():
         Coordinate(row=3, col=3)
     ]
     
+    # Create test attachments
+    sender_attachment = Attachment(nodeId="a", hasArrow=False, nodeInDirection="W")
+    receiver_attachment = Attachment(nodeId="b", hasArrow=True, nodeInDirection="E")
+    
     # Create a test edge
     edge = Edge(
         id="test_edge",
-        senderId="a",
-        receiverId="b",
+        senderAttachment=sender_attachment,
+        receiverAttachment=receiver_attachment,
         cells=cells
     )
     

@@ -1,6 +1,6 @@
 from src.classes.grid import Grid
 from src.classes.node import Node
-from src.classes.edge import Edge
+from src.classes.edge import Edge, Attachment
 from src.classes.coordinate import Coordinate
 
 class ObjectManager:
@@ -18,8 +18,8 @@ class ObjectManager:
             cells = [Coordinate(row=cell[0], col=cell[1]) for cell in edge_data['cells']]
             edge = Edge(
                 id=edge_data['id'],
-                senderId=edge_data['senderId'],
-                receiverId=edge_data['receiverId'],
+                senderAttachment=Attachment(**edge_data['senderAttachment']),
+                receiverAttachment=Attachment(**edge_data['receiverAttachment']),
                 cells=cells
             )
             obj_manager.add_edge(edge)
@@ -59,8 +59,16 @@ class ObjectManager:
         edges_json = [
             {
                 'id': edge.id,
-                'senderId': edge.senderId,
-                'receiverId': edge.receiverId,
+                'senderAttachment': {
+                    'nodeId': edge.senderAttachment.nodeId,
+                    'hasArrow': edge.senderAttachment.hasArrow,
+                    'nodeInDirection': edge.senderAttachment.nodeInDirection
+                },
+                'receiverAttachment': {
+                    'nodeId': edge.receiverAttachment.nodeId,
+                    'hasArrow': edge.receiverAttachment.hasArrow,
+                    'nodeInDirection': edge.receiverAttachment.nodeInDirection
+                },
                 'cells': [
                     {'row': cell.row, 'col': cell.col} for cell in edge.cells
                 ]
