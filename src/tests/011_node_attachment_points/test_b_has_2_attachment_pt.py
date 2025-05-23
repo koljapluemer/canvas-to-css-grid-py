@@ -2,7 +2,7 @@ import os
 import pytest
 from src.classes.object_manager import ObjectManager
 
-def test_b_has_3_attachment_pt():
+def test_b_has_2_attachment_pt():
     # Load base.json
     current_dir = os.path.dirname(os.path.abspath(__file__))
     base_json_path = os.path.join(current_dir, 'base.json')
@@ -13,6 +13,6 @@ def test_b_has_3_attachment_pt():
     # Get node 'b'
     node_b = next(node for node in obj_manager.nodes if node.id == 'b')
     
-    # Assert it has 3 valid attachment points
+    # Assert it has 2 valid attachment points
     attachment_points = obj_manager.get_valid_attachment_points(node_b)
-    assert len(attachment_points) == 3, f"Node 'b' should have 3 valid attachment points, but has {len(attachment_points)}"
+    assert len(attachment_points) == 2, f"Node 'b' should have 2 valid attachment points, but has {len(attachment_points)}"

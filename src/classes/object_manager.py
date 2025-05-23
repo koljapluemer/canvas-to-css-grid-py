@@ -200,3 +200,46 @@ class ObjectManager:
         grid = self.make_grid()
         neighbors = self.get_neighboring_cell_coords(node)
         return [coord for coord in neighbors if 0 <= coord[0] < grid.height and 0 <= coord[1] < grid.width and grid.is_cell_empty(coord[0], coord[1])]
+
+    def get_valid_attachment_points(self, node) -> list[tuple[int, int]]:
+        """Get all valid attachment points for a node.
+        
+        A valid attachment point must:
+        1. Be an empty cell adjacent to the node (orthogonal only)
+        2. Have another empty cell in the same direction for "breathing space"
+        """
+        grid = self.make_grid()
+        valid_points = set()
+        # North edge
+        r = node.row - 1
+        if r >= 0:
+            for c in range(node.col, node.col + node.width):
+                if grid.is_cell_empty(r, c):
+                    breathing_r = r - 1
+                    if breathing_r >= 0 and grid.is_cell_empty(breathing_r, c):
+                        valid_points.add((r, c))
+        # South edge
+        r = node.row + node.height
+        if r < grid.height:
+            for c in range(node.col, node.col + node.width):
+                if grid.is_cell_empty(r, c):
+                    breathing_r = r + 1
+                    if breathing_r < grid.height and grid.is_cell_empty(breathing_r, c):
+                        valid_points.add((r, c))
+        # West edge
+        c = node.col - 1
+        if c >= 0:
+            for r in range(node.row, node.row + node.height):
+                if grid.is_cell_empty(r, c):
+                    breathing_c = c - 1
+                    if breathing_c >= 0 and grid.is_cell_empty(r, breathing_c):
+                        valid_points.add((r, c))
+        # East edge
+        c = node.col + node.width
+        if c < grid.width:
+            for r in range(node.row, node.row + node.height):
+                if grid.is_cell_empty(r, c):
+                    breathing_c = c + 1
+                    if breathing_c < grid.width and grid.is_cell_empty(r, breathing_c):
+                        valid_points.add((r, c))
+        return list(valid_points)
