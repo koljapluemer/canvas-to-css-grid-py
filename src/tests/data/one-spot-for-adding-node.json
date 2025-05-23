@@ -1,0 +1,27 @@
+{
+    "nodes": [
+        {
+            "id": "a",
+            "row": 0,
+            "col": 0,
+            "width": 2,
+            "height": 1
+        },
+        {
+            "id": "b",
+            "row": 1,
+            "col": 2,
+            "width": 1,
+            "height": 1
+        },
+        {
+            "id": "c",
+            "row": 2,
+            "col": 2,
+            "width": 2,
+            "height": 1
+        }
+    ],
+    "edges": [
+    ]
+}
