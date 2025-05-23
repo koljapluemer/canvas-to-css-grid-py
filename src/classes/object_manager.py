@@ -102,16 +102,23 @@ class ObjectManager:
             for i, cell in enumerate(edge.cells):
                 r, c = cell.row, cell.col
                 if i == 0:
+                    # First cell: connects to sender node
                     connects_to_previous_in_direction = Direction[edge.sender_attachment.node_in_direction]
                     has_arrow_to_previous = edge.sender_attachment.has_arrow
-                    connects_to_next_in_direction = None
+                    # Connect to next cell in edge
+                    next_cell = edge.cells[i + 1]
+                    connects_to_next_in_direction = self._compute_direction(r, c, next_cell.row, next_cell.col)
                     has_arrow_to_next = False
                 elif i == len(edge.cells) - 1:
-                    connects_to_previous_in_direction = None
-                    has_arrow_to_previous = False
+                    # Last cell: connects to receiver node
                     connects_to_next_in_direction = Direction[edge.receiver_attachment.node_in_direction]
                     has_arrow_to_next = edge.receiver_attachment.has_arrow
+                    # Connect to previous cell in edge
+                    prev_cell = edge.cells[i - 1]
+                    connects_to_previous_in_direction = self._compute_direction(r, c, prev_cell.row, prev_cell.col)
+                    has_arrow_to_previous = False
                 else:
+                    # Middle cell: connects to both previous and next cells
                     prev_cell = edge.cells[i - 1]
                     next_cell = edge.cells[i + 1]
                     connects_to_previous_in_direction = self._compute_direction(r, c, prev_cell.row, prev_cell.col)
