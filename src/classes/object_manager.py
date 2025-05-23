@@ -231,3 +231,72 @@ class ObjectManager:
             if 0 <= breathing_row < grid.height and 0 <= breathing_col < grid.width and grid.is_cell_empty(breathing_row, breathing_col):
                 valid_points.append((row, col))
         return valid_points
+
+    def draw_edge(
+        self,
+        sender_node: Node,
+        receiver_node: Node,
+        sender_attachment_point: tuple[int, int],
+        receiver_attachment_point: tuple[int, int],
+        has_arrow_sender: bool = False,
+        has_arrow_receiver: bool = False
+    ) -> None:
+        """Draw an edge between two nodes using Manhattan path with forced first/last move directions.
+        has_arrow_sender/receiver: whether to draw an arrow at the sender/receiver attachment point
+        """
+        grid = self.make_grid()
+        # Get directions: from node TO attachment point (direction of breathing space)
+        sender_dir = self._get_direction_from_node_to_point(sender_node, sender_attachment_point)
+        receiver_dir = self._get_direction_from_node_to_point(receiver_node, receiver_attachment_point)
+        # Find path with forced ends
+        path = grid.find_manhattan_path_with_forced_ends(
+            sender_attachment_point, receiver_attachment_point, sender_dir, receiver_dir
+        )
+        if not path:
+            raise ValueError("No valid path exists between attachment points with required breathing space moves")
+        # Create edge
+        edge = Edge(
+            id=str(len(self.edges)),
+            sender_attachment=Attachment(
+                node_id=sender_node.id,
+                has_arrow=has_arrow_sender,
+                node_in_direction=self._get_direction_from_point_to_node(sender_attachment_point, sender_node)
+            ),
+            receiver_attachment=Attachment(
+                node_id=receiver_node.id,
+                has_arrow=has_arrow_receiver,
+                node_in_direction=self._get_direction_from_point_to_node(receiver_attachment_point, receiver_node)
+            ),
+            cells=[Coordinate(row=r, col=c) for r, c in path]
+        )
+        self.add_edge(edge)
+
+    def _get_direction_from_node_to_point(self, node: Node, point: tuple[int, int]) -> str:
+        # Returns the direction from the nearest part of the node to the attachment point
+        r, c = point
+        # Check N/S
+        if r < node.row:
+            return "N"
+        elif r >= node.row + node.height:
+            return "S"
+        # Check W/E
+        if c < node.col:
+            return "W"
+        elif c >= node.col + node.width:
+            return "E"
+        raise ValueError("Attachment point is inside the node")
+
+    def _get_direction_from_point_to_node(self, point: tuple[int, int], node: Node) -> str:
+        # Returns the direction from the attachment point to the nearest part of the node
+        r, c = point
+        # Check N/S
+        if r < node.row:
+            return "S"
+        elif r >= node.row + node.height:
+            return "N"
+        # Check W/E
+        if c < node.col:
+            return "E"
+        elif c >= node.col + node.width:
+            return "W"
+        raise ValueError("Attachment point is inside the node")

@@ -34,11 +34,11 @@ class Grid:
         return grid
     
     def export_to_txt(self):
-        # Convert each row of cells to a space-separated string, no trailing spaces
+        # Convert each row of cells to a space-separated string, with trailing space
         lines = []
         for row in self.cells:
-            line = ' '.join(cell.render_txt() for cell in row)
-            lines.append(line.rstrip())
+            line = ' '.join(cell.render_txt() for cell in row) + ' '  # Add trailing space
+            lines.append(line.rstrip())  # Remove trailing space from last line
         return '\n'.join(lines)
     
     def render_to_flow_txt(self):
@@ -108,3 +108,89 @@ class Grid:
         for row in range(self.height):
             self.cells[row].append(Cell(row, self.width, CellType.EMPTY, None, None, False, False, value="·"))
         self.width += 1
+
+    def find_manhattan_path(self, start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
+        """Find a Manhattan path between two points using only empty cells.
+        
+        Args:
+            start: (row, col) of start point
+            end: (row, col) of end point
+            
+        Returns:
+            List of (row, col) coordinates forming the path, including start and end points.
+            Returns empty list if no path exists.
+        """
+        if not self.is_cell_empty_or_out_of_bounds(start[0], start[1]) or not self.is_cell_empty_or_out_of_bounds(end[0], end[1]):
+            return []
+            
+        path = [start]
+        current = start
+        
+        # First move horizontally
+        while current[1] != end[1]:
+            next_col = current[1] + (1 if end[1] > current[1] else -1)
+            if not self.is_cell_empty_or_out_of_bounds(current[0], next_col):
+                return []  # No path exists
+            current = (current[0], next_col)
+            path.append(current)
+            
+        # Then move vertically
+        while current[0] != end[0]:
+            next_row = current[0] + (1 if end[0] > current[0] else -1)
+            if not self.is_cell_empty_or_out_of_bounds(next_row, current[1]):
+                return []  # No path exists
+            current = (next_row, current[1])
+            path.append(current)
+            
+        return path
+
+    def find_manhattan_path_with_forced_ends(
+        self,
+        start: tuple[int, int],
+        end: tuple[int, int],
+        start_dir: str,  # 'N', 'S', 'E', 'W'
+        end_dir: str     # 'N', 'S', 'E', 'W'
+    ) -> list[tuple[int, int]]:
+        """
+        Find a Manhattan path from start to end, where:
+        - The first move from start is in start_dir (direction of breathing space)
+        - The last move into end is from end_dir (direction of breathing space)
+        Returns the path including start and end, or [] if not possible.
+        """
+        # Direction deltas
+        DIRS = {'N': (-1, 0), 'S': (1, 0), 'E': (0, 1), 'W': (0, -1)}
+        
+        # First move from start must be in start_dir (breathing space direction)
+        dr, dc = DIRS[start_dir]
+        first = (start[0] + dr, start[1] + dc)
+        if not (0 <= first[0] < self.height and 0 <= first[1] < self.width and self.is_cell_empty(first[0], first[1])):
+            return []
+            
+        # Last move into end must be from end_dir (breathing space direction)
+        dr_end, dc_end = DIRS[end_dir]
+        pre_end = (end[0] + dr_end, end[1] + dc_end)
+        if not (0 <= pre_end[0] < self.height and 0 <= pre_end[1] < self.width and self.is_cell_empty(pre_end[0], pre_end[1])):
+            return []
+            
+        # BFS from first to pre_end
+        from collections import deque
+        queue = deque()
+        queue.append((first, [start, first]))
+        visited = set()
+        visited.add(first)
+        
+        while queue:
+            (r, c), path = queue.popleft()
+            if (r, c) == pre_end:
+                return path + [end]
+                
+            # Try directions in order: E, S, W, N (prefer right and down)
+            for dir_name in ['E', 'S', 'W', 'N']:
+                dr, dc = DIRS[dir_name]
+                nr, nc = r + dr, c + dc
+                if (0 <= nr < self.height and 0 <= nc < self.width and
+                    self.is_cell_empty(nr, nc) and (nr, nc) not in visited):
+                    visited.add((nr, nc))
+                    queue.append(((nr, nc), path + [(nr, nc)]))
+                    
+        return []
