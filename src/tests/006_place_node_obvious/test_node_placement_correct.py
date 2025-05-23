@@ -26,8 +26,9 @@ def test_node_placement_correct():
     actual_initial = grid.export_to_txt()
     assert actual_initial == expected_initial, "Initial grid state does not match expected txt file"
     
-    # Add node 'd'
-    grid.add_node(id="d")
+    # Add node 'd' at valid spot
+    obj_manager.add_node_at_valid_spot(id="d")
+    grid = obj_manager.make_grid()
     
     # Verify final state matches node-added.txt
     with open(expected_after_path, 'r') as f:

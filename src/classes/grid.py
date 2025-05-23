@@ -1,11 +1,12 @@
 from classes.coordinate import Coordinate
 from src.classes.cell import Cell
+import random
 
 class Grid:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.cells = [[Cell() for _ in range(width)] for _ in range(height)]
+        self.cells = [[Cell(row, col) for col in range(width)] for row in range(height)]
 
     @staticmethod
     def create_from_txt(txt_data):
@@ -78,3 +79,10 @@ class Grid:
                 if self.cells[row][col].value == "·":
                     empty_cells.append((row, col))
         return empty_cells
+
+    def get_random_valid_node_placement_cell(self) -> tuple[int, int] | None:
+        valid_cells = self.get_all_valid_node_placement_cells()
+        if not valid_cells:
+            return None
+        cell = random.choice(valid_cells)
+        return (cell.row, cell.col)

@@ -82,3 +82,15 @@ class ObjectManager:
             for cell in edge.cells:
                 grid.cells[cell.row][cell.col].value = edge.id
         return grid
+
+    def add_node_at_coordinate(self, id, row, col):
+        from src.classes.node import Node
+        self.add_node(Node(id=id, row=row, col=col, width=1, height=1))
+
+    def add_node_at_valid_spot(self, id):
+        grid = self.make_grid()
+        coord = grid.get_random_valid_node_placement_cell()
+        if coord is None:
+            raise ValueError("No valid placement for new node")
+        row, col = coord
+        self.add_node_at_coordinate(id, row, col)
