@@ -1,3 +1,6 @@
+> [!NOTE]  
+> *Archived Prototype. I will return to this crazy project when I ever have lots of time at my hands.*
+
 Python-based attempts to convert Open Canvas Flowcharts to neat HTML/CSS with CSS grid.
 
 ## Attemps
